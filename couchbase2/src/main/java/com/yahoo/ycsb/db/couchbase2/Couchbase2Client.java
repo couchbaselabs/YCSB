@@ -150,7 +150,7 @@ public class Couchbase2Client extends DB {
     networkMetricsInterval = Integer.parseInt(props.getProperty("couchbase.networkMetricsInterval", "0"));
     runtimeMetricsInterval = Integer.parseInt(props.getProperty("couchbase.runtimeMetricsInterval", "0"));
     scanAllQuery =  "SELECT RAW meta().id FROM `" + bucketName +
-      "` WHERE meta().id >= '$1' ORDER BY meta().id LIMIT $2";
+      "` WHERE meta().id >= $1 ORDER BY meta().id LIMIT $2";
 
     try {
       synchronized (INIT_COORDINATOR) {
@@ -669,7 +669,7 @@ public class Couchbase2Client extends DB {
   private Status scanSpecificFields(final String table, final String startkey, final int recordcount,
       final Set<String> fields, final Vector<HashMap<String, ByteIterator>> result) {
     String scanSpecQuery = "SELECT " + joinFields(fields) + " FROM `" + bucketName
-        + "` WHERE meta().id >= '$1' LIMIT $2";
+        + "` WHERE meta().id >= $1 LIMIT $2";
     N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(
         scanSpecQuery,
         JsonArray.from(formatId(table, startkey), recordcount),
