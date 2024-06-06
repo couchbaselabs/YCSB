@@ -37,11 +37,6 @@ LICENSE file.
             <artifactId>java-client</artifactId>
             <version>${couchbase3.version}</version>
         </dependency>
-      <dependency>
-        <groupId>com.couchbase.client</groupId>
-        <artifactId>couchbase-transactions</artifactId>
-        <version>1.2.1</version>
-      </dependency>
         <dependency>
             <groupId>com.yahoo.ycsb</groupId>
             <artifactId>core</artifactId>

@@ -1,23 +1,24 @@
 /*
- * Copyright (c) 2019 Yahoo! Inc. All rights reserved.
- * <p>
- * Licensed under the Apache License, Version 2.0 (the "License"); you
- * may not use this file except in compliance with the License. You
- * may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied. See the License for the specific language governing
- * permissions and limitations under the License. See accompanying
- * LICENSE file.
- */
+* Copyright (c) 2019 Yahoo! Inc. All rights reserved.
+* <p>
+* Licensed under the Apache License, Version 2.0 (the "License"); you
+* may not use this file except in compliance with the License. You
+* may obtain a copy of the License at
+* <p>
+* http://www.apache.org/licenses/LICENSE-2.0
+* <p>
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+* implied. See the License for the specific language governing
+* permissions and limitations under the License. See accompanying
+* LICENSE file.
+*/
 
 package com.yahoo.ycsb.db.couchbase3;
 
 
+import com.couchbase.client.core.cnc.events.transaction.TransactionLogEvent;
 import com.couchbase.client.core.deps.com.fasterxml.jackson.databind.JsonNode;
 import com.couchbase.client.core.deps.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import com.couchbase.client.core.env.IoConfig;
@@ -31,16 +32,12 @@ import com.couchbase.client.java.ReactiveCluster;
 import com.couchbase.client.java.Collection;
 import com.couchbase.client.java.ReactiveCollection;
 import com.couchbase.client.java.env.ClusterEnvironment;
+import com.couchbase.client.java.env.ClusterEnvironment.Builder;
 import com.couchbase.client.java.json.JacksonTransformers;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.kv.GetOptions;
 import com.couchbase.client.java.kv.GetResult;
-import com.couchbase.transactions.*;
-
-import com.couchbase.transactions.config.TransactionConfigBuilder;
-import com.couchbase.transactions.error.TransactionFailed;
-import com.couchbase.transactions.log.LogDefer;
 
 import com.couchbase.client.java.ClusterOptions;
 
@@ -55,7 +52,9 @@ import com.couchbase.client.java.codec.RawJsonTranscoder;
 
 import com.couchbase.client.java.kv.PersistTo;
 import com.couchbase.client.java.kv.ReplicateTo;
-
+import com.couchbase.client.java.transactions.TransactionGetResult;
+import com.couchbase.client.java.transactions.config.TransactionsConfig;
+import com.couchbase.client.java.transactions.error.TransactionFailedException;
 import com.yahoo.ycsb.*;
 
 import java.io.*;
@@ -73,8 +72,8 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
 /**
- * Full YCSB implementation based on the new Couchbase Java SDK 3.x.
- */
+* Full YCSB implementation based on the new Couchbase Java SDK 3.x.
+*/
 public class Couchbase3Client extends DB {
 
   private static final String KEY_SEPARATOR = ":";
@@ -88,11 +87,11 @@ public class Couchbase3Client extends DB {
   private static volatile Bucket bucket;
   private static volatile ClusterOptions clusterOptions;
   //private volatile Collection collectiont;
-  private static Transactions transactions;
+  // private static Transactions transactions;
   private static boolean transactionEnabled;
   private int[] transactionKeys;
 
-  private volatile TransactionDurabilityLevel transDurabilityLevel;
+  private volatile DurabilityLevel transDurabilityLevel;
 
   private volatile DurabilityLevel durabilityLevel;
   private volatile PersistTo persistTo;
@@ -190,7 +189,7 @@ public class Couchbase3Client extends DB {
         }
 
         try {
-          transDurabilityLevel = parsetransactionDurabilityLevel(props.getProperty("couchbase.durability", "0"));
+          transDurabilityLevel = parseDurabilityLevel(props.getProperty("couchbase.durability", "0"));
         } catch (DBException e) {
           System.out.println("Failed to parse TransactionDurability Level");
         }
@@ -206,47 +205,12 @@ public class Couchbase3Client extends DB {
             keyStore.load(is, pass);
           } catch (Exception e) {
             e.printStackTrace();
-          }
+          } 
         }
-
-        if (sslMode.equals("data")) {
-          environment = ClusterEnvironment
-              .builder()
-              .timeoutConfig(TimeoutConfig.kvTimeout(Duration.ofMillis(kvTimeoutMillis)))
-              .ioConfig(IoConfig.enableMutationTokens(enableMutationToken).numKvConnections(kvEndpoints))
-              .securityConfig(SecurityConfig.enableTls(true)
-                  .trustCertificate(Paths.get(certificateFile)))
-              .build();
-        } else if (sslMode.equals("capella")) {
-          environment = ClusterEnvironment
-              .builder()
-              .timeoutConfig(TimeoutConfig.kvTimeout(Duration.ofMillis(kvTimeoutMillis)))
-              .ioConfig(IoConfig.enableMutationTokens(enableMutationToken).numKvConnections(kvEndpoints)
-                      .enableDnsSrv(true))
-              .securityConfig(SecurityConfig.enableTls(true)
-                      .trustManagerFactory(InsecureTrustManagerFactory.INSTANCE))
-              .build();
-        } else if (sslMode.equals("auth")) {
-          environment = ClusterEnvironment
-              .builder()
-              .timeoutConfig(TimeoutConfig.kvTimeout(Duration.ofMillis(kvTimeoutMillis)))
-              .ioConfig(IoConfig.enableMutationTokens(enableMutationToken).numKvConnections(kvEndpoints))
-              .securityConfig(SecurityConfig.enableTls(true)
-                  .trustStore(keyStore))
-              .build();
-          environment.eventBus().subscribe(System.out::println);
-        } else {
-          environment = ClusterEnvironment
-              .builder()
-              .timeoutConfig(TimeoutConfig.kvTimeout(Duration.ofMillis(kvTimeoutMillis)))
-              .ioConfig(IoConfig.enableMutationTokens(enableMutationToken).numKvConnections(kvEndpoints))
-              .build();
-        }
-
+        setupClusterEnv(enableMutationToken);
         clusterOptions = ClusterOptions.clusterOptions(username, password);
- 
+        clusterOptions.environment(environment);
         if (!sslMode.equals("auth")) {
-          clusterOptions.environment(environment);
           Set<SeedNode> seedNodes = new HashSet<>(Arrays.asList(
               SeedNode.create(hostname,
                   Optional.of(kvPort),
@@ -258,20 +222,48 @@ public class Couchbase3Client extends DB {
 
         reactiveCluster = cluster.reactive();
         bucket = cluster.bucket(bucketName);
-
-        if ((transactions == null) && transactionEnabled) {
-          transactions = Transactions.create(cluster, TransactionConfigBuilder.create()
-              .durabilityLevel(transDurabilityLevel)
-              .numATRs(numATRS)
-              .expirationTime(Duration.ofSeconds(120))
-              .keyValueTimeout(Duration.ofSeconds(120))
-              .build());
-        }
       }
     }
     OPEN_CLIENTS.incrementAndGet();
   }
 
+
+  private void setupClusterEnv(boolean enableMutationToken) throws DBException {
+
+    Builder envBuilder = ClusterEnvironment.builder();
+    if (sslMode.equals("data")) {
+      envBuilder = envBuilder
+          .timeoutConfig(TimeoutConfig.kvTimeout(Duration.ofMillis(kvTimeoutMillis)))
+          .ioConfig(IoConfig.enableMutationTokens(enableMutationToken).numKvConnections(kvEndpoints))
+          .securityConfig(SecurityConfig.enableTls(true)
+              .trustCertificate(Paths.get(certificateFile)));
+    } else if (sslMode.equals("capella")) {
+      envBuilder = envBuilder
+          .timeoutConfig(TimeoutConfig.kvTimeout(Duration.ofMillis(kvTimeoutMillis)))
+          .ioConfig(IoConfig.enableMutationTokens(enableMutationToken).numKvConnections(kvEndpoints)
+                  .enableDnsSrv(true))
+          .securityConfig(SecurityConfig.enableTls(true)
+                  .trustManagerFactory(InsecureTrustManagerFactory.INSTANCE));
+    } else if (sslMode.equals("auth")) {
+      envBuilder = envBuilder
+          .timeoutConfig(TimeoutConfig.kvTimeout(Duration.ofMillis(kvTimeoutMillis)))
+          .ioConfig(IoConfig.enableMutationTokens(enableMutationToken).numKvConnections(kvEndpoints))
+          .securityConfig(SecurityConfig.enableTls(true)
+              .trustStore(keyStore));
+      environment.eventBus().subscribe(System.out::println);
+    } else {
+      envBuilder = envBuilder
+          .timeoutConfig(TimeoutConfig.kvTimeout(Duration.ofMillis(kvTimeoutMillis)))
+          .ioConfig(IoConfig.enableMutationTokens(enableMutationToken).numKvConnections(kvEndpoints));
+    }
+
+    if(transactionEnabled){
+      envBuilder = envBuilder
+          .transactionsConfig(TransactionsConfig
+          .durabilityLevel(transDurabilityLevel).timeout(Duration.ofSeconds(120)));
+    }
+    environment = envBuilder.build();
+  }
   private static ReplicateTo parseReplicateTo(final String property) throws DBException {
     int value = Integer.parseInt(property);
     switch (value) {
@@ -303,24 +295,6 @@ public class Couchbase3Client extends DB {
       return PersistTo.FOUR;
     default:
       throw new DBException("\"couchbase.persistTo\" must be between 0 and 4");
-    }
-  }
-
-  private static TransactionDurabilityLevel parsetransactionDurabilityLevel(final String property) throws DBException {
-
-    int value = Integer.parseInt(property);
-
-    switch(value){
-    case 0:
-      return TransactionDurabilityLevel.NONE;
-    case 1:
-      return TransactionDurabilityLevel.MAJORITY;
-    case 2:
-      return TransactionDurabilityLevel.MAJORITY_AND_PERSIST_TO_ACTIVE;
-    case 3:
-      return TransactionDurabilityLevel.PERSIST_TO_MAJORITY;
-    default :
-      throw new DBException("\"couchbase.durability\" must be between 0 and 3");
     }
   }
 
@@ -357,7 +331,7 @@ public class Couchbase3Client extends DB {
   }
 
   public Status read(final String table, final String key, final Set<String> fields,
-                     final Map<String, ByteIterator> result) {
+                    final Map<String, ByteIterator> result) {
 
     try {
 
@@ -376,7 +350,7 @@ public class Couchbase3Client extends DB {
   }
 
   public Status read(final String table, final String key, final Set<String> fields,
-                     final Map<String, ByteIterator> result, String scope, String coll) {
+                    final Map<String, ByteIterator> result, String scope, String coll) {
 
     try {
 
@@ -433,7 +407,7 @@ public class Couchbase3Client extends DB {
   }
 
   public Status update(final String table, final String key,
-                       final Map<String, ByteIterator> values, String scope, String coll) {
+                      final Map<String, ByteIterator> values, String scope, String coll) {
 
     try {
 
@@ -541,8 +515,8 @@ public class Couchbase3Client extends DB {
 
 
   public Status simpleCustomSequense(String table, String[] transationKeys,
-                                     Map<String, ByteIterator>[] transationValues, String[] transationOperations,
-                                     Set<String> fields, Map<String, ByteIterator> result) {
+                                    Map<String, ByteIterator>[] transationValues, String[] transationOperations,
+                                    Set<String> fields, Map<String, ByteIterator> result) {
 
     Collection collection = bucket.defaultCollection();
 
@@ -578,17 +552,17 @@ public class Couchbase3Client extends DB {
   }
 
   public Status transactionContext(String table, String[] transationKeys, Map<String,
-                                   ByteIterator>[] transationValues,
-                                   String[] transationOperations, Set<String> fields,
-                                   Map<String, ByteIterator> result,
-                                   String scope, String coll) {
+                                  ByteIterator>[] transationValues,
+                                  String[] transationOperations, Set<String> fields,
+                                  Map<String, ByteIterator> result,
+                                  String scope, String coll) {
 
 
     Collection collection = collectionenabled ? bucket.scope(scope).collection(coll) : bucket.defaultCollection();
 
     try {
 
-      transactions.run((ctx) -> {
+      cluster.transactions().run((ctx) -> {
         // Init and Start transaction here
           for (int i = 0; i < transationKeys.length; i++) {
             final String formattedDocId = formatId(table, transationKeys[i]);
@@ -612,13 +586,12 @@ public class Couchbase3Client extends DB {
               break;
             }
           }
-          ctx.commit();
         });
-    } catch (TransactionFailed e) {
+    } catch (TransactionFailedException e) {
       Logger logger = LoggerFactory.getLogger(getClass().getName() + ".bad");
       //System.err.println("Transaction failed " + e.result().transactionId() + " " +
           //e.result().timeTaken().toMillis() + "msecs");
-      for (LogDefer err : e.result().log().logs()) {
+      for (TransactionLogEvent err : e.logs()) {
         String s = err.toString();
         logger.warn("transaction failed with exception :" + s);
       }
@@ -630,14 +603,14 @@ public class Couchbase3Client extends DB {
 
   public Status transactionContext(String table, String[] transationKeys, Map<String,
       ByteIterator>[] transationValues,
-                                   String[] transationOperations, Set<String> fields,
-                                   Map<String, ByteIterator> result) {
+                                  String[] transationOperations, Set<String> fields,
+                                  Map<String, ByteIterator> result) {
 
     Collection collection = bucket.defaultCollection();
 
     try {
 
-      transactions.run((ctx) -> {
+      cluster.transactions().run((ctx) -> {
         // Init and Start transaction here
           for (int i = 0; i < transationKeys.length; i++) {
             final String formattedDocId = formatId(table, transationKeys[i]);
@@ -661,13 +634,12 @@ public class Couchbase3Client extends DB {
               break;
             }
           }
-          ctx.commit();
         });
-    } catch (TransactionFailed e) {
+    } catch (TransactionFailedException e) {
       Logger logger = LoggerFactory.getLogger(getClass().getName() + ".bad");
       //System.err.println("Transaction failed " + e.result().transactionId() + " " +
       //e.result().timeTaken().toMillis() + "msecs");
-      for (LogDefer err : e.result().log().logs()) {
+      for (TransactionLogEvent err : e.logs()) {
         String s = err.toString();
         logger.warn("transaction failed with exception :" + s);
       }
@@ -677,11 +649,11 @@ public class Couchbase3Client extends DB {
   }
 
   /**
-   * Helper method to turn the passed in iterator values into a map we can encode to json.
-   *
-   * @param values the values to encode.
-   * @return the map of encoded values.
-   */
+  * Helper method to turn the passed in iterator values into a map we can encode to json.
+  *
+  * @param values the values to encode.
+  * @return the map of encoded values.
+  */
   private static Map<String, String> encode(final Map<String, ByteIterator> values) {
     Map<String, String> result = new HashMap<>(values.size());
     for (Map.Entry<String, ByteIterator> value : values.entrySet()) {
@@ -712,7 +684,7 @@ public class Couchbase3Client extends DB {
 
   @Override
   public Status scan(final String table, final String startkey, final int recordcount, final Set<String> fields,
-                     final Vector<HashMap<String, ByteIterator>> result) {
+                    final Vector<HashMap<String, ByteIterator>> result) {
     try {
       if (fields == null || fields.isEmpty()) {
         return scanAllFields(table, startkey, recordcount, result);
@@ -728,7 +700,7 @@ public class Couchbase3Client extends DB {
   }
 
   public Status scan(final String table, final String startkey, final int recordcount, final Set<String> fields,
-                     final Vector<HashMap<String, ByteIterator>> result, String scope, String coll) {
+                    final Vector<HashMap<String, ByteIterator>> result, String scope, String coll) {
     try {
       if (fields == null || fields.isEmpty()) {
         return scanAllFields(table, startkey, recordcount, result, scope, coll);
@@ -744,7 +716,7 @@ public class Couchbase3Client extends DB {
   }
 
   private Status scanAllFields(final String table, final String startkey, final int recordcount,
-                               final Vector<HashMap<String, ByteIterator>> result) {
+                              final Vector<HashMap<String, ByteIterator>> result) {
 
     final Collection collection = bucket.defaultCollection();
 
@@ -777,7 +749,7 @@ public class Couchbase3Client extends DB {
   }
 
   private Status scanAllFields(final String table, final String startkey, final int recordcount,
-                               final Vector<HashMap<String, ByteIterator>> result, String scope, String coll) {
+                              final Vector<HashMap<String, ByteIterator>> result, String scope, String coll) {
     final Collection collection = collectionenabled ? bucket.scope(scope).collection(coll) : bucket.defaultCollection();
 
     final List<HashMap<String, ByteIterator>> data = new ArrayList<HashMap<String, ByteIterator>>(recordcount);
@@ -810,15 +782,15 @@ public class Couchbase3Client extends DB {
   }
 
   /**
-   * Performs the {@link #scan(String, String, int, Set, Vector)} operation N1Ql only for a subset of the fields.
-   *
-   * @param table The name of the table
-   * @param startkey The record key of the first record to read.
-   * @param recordcount The number of records to read
-   * @param fields The list of fields to read, or null for all of them
-   * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-   * @return The result of the operation.
-   */
+  * Performs the {@link #scan(String, String, int, Set, Vector)} operation N1Ql only for a subset of the fields.
+  *
+  * @param table The name of the table
+  * @param startkey The record key of the first record to read.
+  * @param recordcount The number of records to read
+  * @param fields The list of fields to read, or null for all of them
+  * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+  * @return The result of the operation.
+  */
 
   private Status scanSpecificFields(final String table, final String startkey, final int recordcount,
                                     final Set<String> fields, final Vector<HashMap<String, ByteIterator>> result) {
@@ -896,11 +868,11 @@ public class Couchbase3Client extends DB {
 
 
   /**
-   * Helper method to join the set of fields into a String suitable for N1QL.
-   *
-   * @param fields the fields to join.
-   * @return the joined fields as a String.
-   */
+  * Helper method to join the set of fields into a String suitable for N1QL.
+  *
+  * @param fields the fields to join.
+  * @return the joined fields as a String.
+  */
   private static String joinFields(final Set<String> fields) {
     if (fields == null || fields.isEmpty()) {
       return "*";
@@ -915,12 +887,12 @@ public class Couchbase3Client extends DB {
 
 
   /**
-   * Helper method to turn the prefix and key into a proper document ID.
-   *
-   * @param prefix the prefix (table).
-   * @param key the key itself.
-   * @return a document ID that can be used with Couchbase.
-   */
+  * Helper method to turn the prefix and key into a proper document ID.
+  *
+  * @param prefix the prefix (table)
+  * @param key the key itself.
+  * @return a document ID that can be used with Couchbase.
+  */
   private static String formatId(final String prefix, final String key) {
     return prefix + KEY_SEPARATOR + key;
   }
