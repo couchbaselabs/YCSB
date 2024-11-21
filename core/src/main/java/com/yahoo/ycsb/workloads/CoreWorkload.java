@@ -518,7 +518,7 @@ public class CoreWorkload extends Workload {
     }
     String value = Long.toString(keynum);
     int fill = zeropadding - value.length();
-    String prekey = "user";
+    String prekey = "_sync";
     for (int i = 0; i < fill; i++) {
       prekey += '0';
     }
