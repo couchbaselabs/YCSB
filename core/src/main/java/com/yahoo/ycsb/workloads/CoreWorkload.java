@@ -72,7 +72,7 @@ public class CoreWorkload extends Workload {
   /**
    * The default name of the database table to run queries against.
    */
-  public static final String TABLENAME_PROPERTY_DEFAULT = "usertable";
+  public static final String TABLENAME_PROPERTY_DEFAULT = "_sync";
 
   protected String table;
 
@@ -518,7 +518,7 @@ public class CoreWorkload extends Workload {
     }
     String value = Long.toString(keynum);
     int fill = zeropadding - value.length();
-    String prekey = "_sync";
+    String prekey = "user";
     for (int i = 0; i < fill; i++) {
       prekey += '0';
     }
