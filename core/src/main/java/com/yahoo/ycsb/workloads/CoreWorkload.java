@@ -72,7 +72,7 @@ public class CoreWorkload extends Workload {
   /**
    * The default name of the database table to run queries against.
    */
-  public static final String TABLENAME_PROPERTY_DEFAULT = "_sync";
+  public static final String TABLENAME_PROPERTY_DEFAULT = "_sync:att";
 
   protected String table;
 
