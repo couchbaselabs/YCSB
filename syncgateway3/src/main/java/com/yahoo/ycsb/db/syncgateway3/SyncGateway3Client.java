@@ -1368,11 +1368,11 @@ public class SyncGateway3Client extends DB {
     CloseableHttpResponse response = restClient.execute(request);
     long endTime = System.nanoTime();
     int responseCode = response.getStatusLine().getStatusCode();
-    if (responseCode != 200 && responseCode != 201) {
-      System.err.println("Doc Insert failed for request :" + request + "  request Code:" + responseCode);
-      System.err.println(" response message if responseCode not 200 :" + response);
-      System.err.println("The data is: " + data);
-    }
+    // if (responseCode != 200 && responseCode != 201) {
+    //   System.err.println("Doc Insert failed for request :" + request + "  request Code:" + responseCode);
+    //   System.err.println(" response message if responseCode not 200 :" + response);
+    //   System.err.println("The data is: " + data);
+    // }
     HttpEntity responseEntity = response.getEntity();
     boolean responseGenericValidation = true;
     if (responseEntity != null) {
