@@ -24,7 +24,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class AcknowledgedCounterGenerator extends CounterGenerator {
   /** The size of the window of pending id ack's. 2^20 = {@value} */
-  static final int WINDOW_SIZE = Integer.rotateLeft(1, 23);
+  static final int WINDOW_SIZE = Integer.rotateLeft(1, 25);
 
   /** The mask to use to turn an id into a slot in {@link #window}. */
   private static final int WINDOW_MASK = WINDOW_SIZE - 1;
