@@ -104,6 +104,7 @@ public class SyncGateway3Client extends DB {
   private static final String SG_CHANNELS_PER_GRANT = "syncgateway.channelspergrant";
   private static final String SG_GRANT_ACCESS_TO_ALL_USERS = "syncgateway.grantaccesstoall";
   private static final String SG_GRANT_ACCESS_IN_SCAN = "syncgateway.grantaccessinscan";
+  private static final String SG_WARMUP_CHANNEL_CACHE = "syncgateway.warmupchannelcache";
   private static final String SG_REPLICATOR2 = "syncgateway.replicator2";
   private static final String SG_READ_LIMIT = "syncgateway.readLimit";
   private static final int SG_READ_MODE_WITH_LIMIT = 5;
@@ -147,6 +148,7 @@ public class SyncGateway3Client extends DB {
   private boolean useCapella;
   private boolean grantAccessToAllUsers;
   private boolean grantAccessInScanOperation;
+  private boolean warmupChannelCache;
   private boolean isSgReplicator2;
   private String readLimit;
   private volatile Criteria requestTimedout = new Criteria(false);
@@ -251,6 +253,7 @@ public class SyncGateway3Client extends DB {
     channelsPerGrant = Integer.parseInt(props.getProperty(SG_CHANNELS_PER_GRANT, "1"));
     grantAccessToAllUsers = props.getProperty(SG_GRANT_ACCESS_TO_ALL_USERS, "false").equals("true");
     grantAccessInScanOperation = props.getProperty(SG_GRANT_ACCESS_IN_SCAN, "false").equals("true");
+    warmupChannelCache = props.getProperty(SG_WARMUP_CHANNEL_CACHE, "false").equals("true");
     readLimit = props.getProperty(SG_READ_LIMIT, "200");
     dbEndpoint = "/" + this.database + "/";
     // Channels specified on this endpoint must be fully qualified with a scope and
@@ -292,6 +295,9 @@ public class SyncGateway3Client extends DB {
     }
     if (grantAccessToAllUsers) {
       grantAccessToAllUsers();
+    }
+    if (warmupChannelCache) {
+      warmupChannelCache();
     }
   }
 
@@ -2254,6 +2260,48 @@ public class SyncGateway3Client extends DB {
         String coll = "collection-" + currCollectionId;
         insertAccessGrantForCollection(userName, scopes[0], coll);
       }
+    }
+  }
+
+  private void warmupChannelCache() {
+    long userId = 0;
+    while (userId < (totalUsers + insertUsersStart)) {
+      userId = (long) sgUsersPool.nextValue() + insertUsersStart;
+      if (userId < (totalUsers + insertUsersStart)) {
+        try {
+          Thread timer = new Thread(new Timer(execTimeout, requestTimedout));
+          timer.start();
+          String userName = DEFAULT_USERNAME_PREFIX + userId;
+          System.out.println("Warming up channel cache for user " + userName);
+          System.out.println("Assigned user is " + currentIterationUser);
+          String port = (useAuth) ? portPublic : portAdmin;
+          String changesEndpoint = this.dbEndpoint + "_changes";
+          String fullUrl = http + getRandomHost() + ":" + port + documentEndpoint + "/_changes";
+          System.out.println("The full url is: " + fullUrl);
+          HttpGet request = new HttpGet(fullUrl);
+
+          for (int i = 0; i < headers.length; i = i + 2) {
+            request.setHeader(headers[i], headers[i + 1]);
+          }
+          if (basicAuth) {
+            String auth = userName + ":" + password;
+            byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("US-ASCII")));
+            String authHeader = "Basic " + new String(encodedAuth);
+            request.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
+          }
+          if (useAuth && !basicAuth) {
+            request.setHeader("Cookie", "SyncGatewaySession=" + getSessionCookieByUser(userName));
+          }
+          CloseableHttpResponse response = restClient.execute(request);
+          int responseCode = response.getStatusLine().getStatusCode();
+          System.out.println("Response code is " + responseCode);
+          response.close();
+          restClient.close();
+        }
+        catch (Exception e) {
+          System.err.println("Failed to warmup channel cache for user " + userId + ", skipping...");
+        }
+     }
     }
   }
 
