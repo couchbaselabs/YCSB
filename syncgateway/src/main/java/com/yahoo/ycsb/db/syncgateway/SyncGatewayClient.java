@@ -2139,8 +2139,10 @@ public class SyncGatewayClient extends DB {
 
   private void warmupChannelCache() {
     long userId = 0;
-    System.out.println("Warming up channel cache for all users...");
+    System.err.println("Warming up channel cache for all users...");
     System.err.println("Total users: " + totalUsers);
+    System.err.println("Insert users start: " + insertUsersStart);
+    System.err.println("Current user is: " + userId);
     while (userId < (totalUsers + insertUsersStart)) {
       userId = (long) sgUsersPool.nextValue() + insertUsersStart;
       if (userId < (totalUsers + insertUsersStart)) {
@@ -2148,11 +2150,11 @@ public class SyncGatewayClient extends DB {
           Thread timer = new Thread(new Timer(execTimeout, requestTimedout));
           timer.start();
           String userName = DEFAULT_USERNAME_PREFIX + userId;
-          System.out.println("Warming up channel cache for user " + userName);
-          System.out.println("Assigned user is " + currentIterationUser);
+          System.err.println("Warming up channel cache for user " + userName);
+          System.err.println("Assigned user is " + currentIterationUser);
           String port = (useAuth) ? portPublic : portAdmin;
           String fullUrl = http + getRandomHost() + ":" + port + documentEndpoint + "/_changes";
-          System.out.println("The full url is: " + fullUrl);
+          System.err.println("The full url is: " + fullUrl);
           HttpGet request = new HttpGet(fullUrl);
 
           for (int i = 0; i < headers.length; i = i + 2) {
@@ -2169,7 +2171,7 @@ public class SyncGatewayClient extends DB {
           }
           CloseableHttpResponse response = restClient.execute(request);
           int responseCode = response.getStatusLine().getStatusCode();
-          System.out.println("Response code is " + responseCode);
+          System.err.println("Response code is " + responseCode);
           response.close();
           restClient.close();
         }
