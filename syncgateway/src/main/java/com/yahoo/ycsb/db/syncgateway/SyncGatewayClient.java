@@ -2145,6 +2145,8 @@ public class SyncGatewayClient extends DB {
     System.err.println("Current user is: " + userId);
     while (userId < (totalUsers + insertUsersStart)) {
       userId = (long) sgUsersPool.nextValue() + insertUsersStart;
+      System.err.println("Current user is: " + userId);
+      System.err.println("The limit is: " + (totalUsers + insertUsersStart));
       if (userId < (totalUsers + insertUsersStart)) {
         try {
           Thread timer = new Thread(new Timer(execTimeout, requestTimedout));
