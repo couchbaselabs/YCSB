@@ -67,6 +67,7 @@ public class SyncGatewayClient extends DB {
   private static CounterGenerator sgUserInsertCounter = new CounterGenerator(0);
   private static CounterGenerator sgUsersPool = new CounterGenerator(0);
   private static CounterGenerator sgAccessPool = new CounterGenerator(0);
+  private static CounterGenerator sgUsersWarmup = new CounterGenerator(0);
   private static final String HTTP_CON_TIMEOUT = "rest.timeout.con";
   private static final String HTTP_READ_TIMEOUT = "rest.timeout.read";
   private static final String HTTP_EXEC_TIMEOUT = "rest.timeout.exec";
@@ -2141,43 +2142,36 @@ public class SyncGatewayClient extends DB {
     long userId = 0;
     System.err.println("Warming up channel cache for all users...");
     System.err.println("Total users: " + totalUsers);
-    System.err.println("Insert users start: " + insertUsersStart);
-    System.err.println("Current user is: " + userId);
     while (userId < (totalUsers + insertUsersStart)) {
-      userId = (long) sgUsersPool.nextValue() + insertUsersStart;
-      System.err.println("Current user is: " + userId);
-      System.err.println("The limit is: " + (totalUsers + insertUsersStart));
+      userId = (long) sgUsersWarmup.nextValue() + insertUsersStart;
       if (userId < (totalUsers + insertUsersStart)) {
         try {
           Thread timer = new Thread(new Timer(execTimeout, requestTimedout));
           timer.start();
           String userName = DEFAULT_USERNAME_PREFIX + userId;
           System.err.println("Warming up channel cache for user " + userName);
-          System.err.println("Assigned user is " + currentIterationUser);
           String port = (useAuth) ? portPublic : portAdmin;
-          String fullUrl = http + getRandomHost() + ":" + port + documentEndpoint + "/_changes";
+          String fullUrl = http + getRandomHost() + ":" + port + documentEndpoint + "_changes";
           System.err.println("The full url is: " + fullUrl);
           HttpGet request = new HttpGet(fullUrl);
 
           for (int i = 0; i < headers.length; i = i + 2) {
             request.setHeader(headers[i], headers[i + 1]);
           }
-          if (basicAuth) {
-            String auth = userName + ":" + password;
-            byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("US-ASCII")));
-            String authHeader = "Basic " + new String(encodedAuth);
-            request.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
-          }
-          if (useAuth && !basicAuth) {
-            request.setHeader("Cookie", "SyncGatewaySession=" + getSessionCookieByUser(userName));
-          }
+          String auth = userName + ":" + password;
+          byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("US-ASCII")));
+          String authHeader = "Basic " + new String(encodedAuth);
+          request.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
+          System.err.println("The request is: " + request);
           CloseableHttpResponse response = restClient.execute(request);
+          System.err.println("The response is: " + response);
           int responseCode = response.getStatusLine().getStatusCode();
           System.err.println("Response code is " + responseCode);
           response.close();
           restClient.close();
         }
         catch (Exception e) {
+          System.err.println("The exception is " + e);
           System.err.println("Failed to warmup channel cache for user " + userId + ", skipping...");
         }
      }
