@@ -291,12 +291,14 @@ public class SyncGateway3Client extends DB {
     }
     collectionUsers.put(_DEFAULT, 0);
     if ((loadMode != SG_LOAD_MODE_USERS) && (useAuth) && (initUsers)) {
+      System.err.println("Gets here.");
       initAllUsers();
     }
     if (grantAccessToAllUsers) {
       grantAccessToAllUsers();
     }
     if (warmupChannelCache) {
+      System.err.println("Gets here.");
       warmupChannelCache();
     }
   }
@@ -2226,6 +2228,8 @@ public class SyncGateway3Client extends DB {
 
   private void initAllUsers() {
     long userId = 0;
+    System.out.println("Initializing sessions for all users...");
+    System.err.println("Total users: " + totalUsers);
     while (userId < (totalUsers + insertUsersStart)) {
       userId = (long) sgUsersPool.nextValue() + insertUsersStart;
       if (userId < (totalUsers + insertUsersStart)) {
@@ -2265,6 +2269,8 @@ public class SyncGateway3Client extends DB {
 
   private void warmupChannelCache() {
     long userId = 0;
+    System.out.println("Warming up channel cache for all users...");
+    System.err.println("Total users: " + totalUsers);
     while (userId < (totalUsers + insertUsersStart)) {
       userId = (long) sgUsersPool.nextValue() + insertUsersStart;
       if (userId < (totalUsers + insertUsersStart)) {
