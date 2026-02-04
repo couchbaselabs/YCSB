@@ -169,11 +169,21 @@ public class OneMeasurementHistogram extends OneMeasurement {
     exportStatusCounts(exporter);
 
     if (verbose) {
-      for (int i = 0; i < buckets; i++) {
-        exporter.write(getName(), Integer.toString(i), histogram[i]);
+      for (int batchStart = 0; batchStart < buckets; batchStart += 10) {
+        long batchSum = 0;
+        int batchEnd = Math.min(batchStart + 10, buckets);
+        
+        for (int i = batchStart; i < batchEnd; i++) {
+          batchSum += histogram[i];
+        }
+        
+        if (batchSum > 0) {
+          String range = batchStart + "-" + (batchEnd - 1) + "ms";
+          exporter.write(getName(), range, batchSum);
+        }
       }
       
-      exporter.write(getName(), ">" + buckets, histogramoverflow);
+      exporter.write(getName(), ">" + buckets + "ms", histogramoverflow);
     }
   }
 
