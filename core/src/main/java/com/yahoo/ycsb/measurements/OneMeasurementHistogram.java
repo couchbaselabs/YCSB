@@ -142,7 +142,7 @@ public class OneMeasurementHistogram extends OneMeasurement {
       }
       if ((!done50th) && (((double) opcounter) / ((double) operations) >= 0.50)) {
         exporter.write(getName(), "50thPercentileLatency(us)", i * 1000);
-        done60th = true;
+        done50th = true;
       }
       if ((!done60th) && (((double) opcounter) / ((double) operations) >= 0.60)) {
         exporter.write(getName(), "60thPercentileLatency(us)", i * 1000);
