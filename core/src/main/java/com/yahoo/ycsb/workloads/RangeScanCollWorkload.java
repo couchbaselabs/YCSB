@@ -56,15 +56,13 @@ public class RangeScanCollWorkload extends CustomCollectionWorkload {
     HashSet<String> fields = null;
 
     if (rangescan) {
-      // get the last key
-      for (int i = 0; i < len; i++) {
-        keynum = nextKeynum();
+      long endKeynum = nextKeynum();
+
+      while (buildKeyName(endKeynum).compareTo(buildKeyName(keynum)) <= 0) {
+        endKeynum = nextKeynum();
       }
 
-      String endkeyname = buildKeyName(keynum);
-
-      System.out.println("The fist key is: " + startkeyname);
-      System.out.println("The last key is: " + endkeyname);
+      String endkeyname = buildKeyName(endKeynum);
 
       db.rangescan(table, startkeyname, endkeyname, len, new Vector<HashMap<String, ByteIterator>>(),
                    scopename, collname);

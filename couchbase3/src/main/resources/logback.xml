@@ -37,8 +37,8 @@ LICENSE file.
     </encoder>
   </appender>
 
-  <root level="warn">
-    <!--<appender-ref ref="FILE" />-->
+  <root level="INFO">
+   <appender-ref ref="STDOUT" />
     <!--<appender-ref ref="STDOUT" />-->
   </root>
 

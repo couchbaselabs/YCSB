@@ -42,7 +42,7 @@ public class RangeScanWorkload extends CoreWorkload {
     // choose a random key
     long keynum = nextKeynum();
 
-    String startkeyname = "usertable:" + buildKeyName(keynum);
+    String startkeyname = buildKeyName(keynum);
 
     // choose a random scan length
     int len = scanlength.nextValue().intValue();
@@ -51,11 +51,14 @@ public class RangeScanWorkload extends CoreWorkload {
 
     if (rangescan) {
       // get the last key
-      for (int i = 0; i < len; i++) {
-        keynum = nextKeynum();
+      long endKeynum = nextKeynum();
+
+      while (buildKeyName(endKeynum).compareTo(buildKeyName(keynum)) <= 0) {
+        endKeynum = nextKeynum();
       }
 
-      String endkeyname = "usertable:" + buildKeyName(keynum);
+      startkeyname = "usertable:" + startkeyname;
+      String endkeyname = "usertable:" + buildKeyName(endKeynum);
 
       db.rangescan(table, startkeyname, endkeyname, len, new Vector<HashMap<String, ByteIterator>>());
       return;

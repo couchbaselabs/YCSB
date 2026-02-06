@@ -76,8 +76,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
-import static com.couchbase.client.java.kv.ScanOptions.scanOptions;
-
 /**
  * Full YCSB implementation based on the new Couchbase Java SDK 3.x.
  */
@@ -261,6 +259,7 @@ public class Couchbase3Client extends DB {
         }
         reactiveCluster = cluster.reactive();
         bucket = cluster.bucket(bucketName);
+        bucket.waitUntilReady(Duration.ofSeconds(20));
         if ((transactions == null) && transactionEnabled) {
           transactions = Transactions.create(cluster, TransactionConfigBuilder.create()
               .durabilityLevel(transDurabilityLevel)
@@ -963,48 +962,97 @@ public class Couchbase3Client extends DB {
     final ReactiveCollection reactiveCollection = collection.reactive();
 
     final List<HashMap<String, ByteIterator>> data = new ArrayList<HashMap<String, ByteIterator>>(recordcount);
-    ScanResult data2;
 
     try {
       if (rangeScanSampling) {
         if (ordered) {
-          data2 = reactiveCollection.scan(ScanType.samplingScan(recordcount))
-              .sort(Comparator.comparing(ScanResult::id))
-              .blockLast();
+          reactiveCollection.scan(ScanType.samplingScan(recordcount))
+            .sort(Comparator.comparing(ScanResult::id))
+            .take(recordcount)
+            .map(scanResult -> {
+                HashMap<String, ByteIterator> tuple = new HashMap<>();
+                if (!scanResult.idOnly()) {
+                  decodeStringSource(scanResult.contentAsObject().toString(), null, tuple);
+                }
+                return tuple;
+              })
+            .toStream()
+            .forEach(data::add);
         } else {
-          data2 = reactiveCollection.scan(ScanType.samplingScan(recordcount))
-              .blockLast();
+          reactiveCollection.scan(ScanType.samplingScan(recordcount))
+            .take(recordcount)
+            .map(scanResult -> {
+                HashMap<String, ByteIterator> tuple = new HashMap<>();
+                if (!scanResult.idOnly()) {
+                  decodeStringSource(scanResult.contentAsObject().toString(), null, tuple);
+                }
+                return tuple;
+              })
+            .toStream()
+            .forEach(data::add);
         }
       } else if (prefixScan) {
         final String prefix = startkey.substring(0, startkey.length() - 15);
         if (ordered) {
-          data2 = reactiveCollection.scan(ScanType.prefixScan(prefix),
-                                          scanOptions().idsOnly(true))
-              .take(recordcount)
-              .sort(Comparator.comparing(ScanResult::id))
-              .blockLast();
+          reactiveCollection.scan(ScanType.prefixScan(prefix))
+            .take(recordcount)
+            .sort(Comparator.comparing(ScanResult::id))
+            .map(scanResult -> {
+                HashMap<String, ByteIterator> tuple = new HashMap<>();
+                if (!scanResult.idOnly()) {
+                  decodeStringSource(scanResult.contentAsObject().toString(), null, tuple);
+                }
+                return tuple;
+              })
+            .toStream()
+            .forEach(data::add);
         } else {
-          data2 = reactiveCollection.scan(ScanType.prefixScan(prefix),
-                                          scanOptions().idsOnly(true))
-              .take(recordcount)
-              .blockLast();
+          reactiveCollection.scan(ScanType.prefixScan(prefix))
+            .take(recordcount)
+            .map(scanResult -> {
+                HashMap<String, ByteIterator> tuple = new HashMap<>();
+                if (!scanResult.idOnly()) {
+                  decodeStringSource(scanResult.contentAsObject().toString(), null, tuple);
+                }
+                return tuple;
+              })
+            .toStream()
+            .forEach(data::add);
         }
       } else {
         final ScanTerm startTerm = ScanTerm.inclusive(startkey);
         final ScanTerm endTerm = ScanTerm.inclusive(endkey);
+        System.out.println("Starting range scan from " + startTerm + " to " + endTerm);
         if (ordered) {
-          data2 = reactiveCollection.scan(ScanType.rangeScan(startTerm, endTerm))
-              .take(recordcount)
-              .sort(Comparator.comparing(ScanResult::id))
-              .blockLast();
+          reactiveCollection.scan(ScanType.rangeScan(startTerm, endTerm))
+            .take(recordcount)
+            .sort(Comparator.comparing(ScanResult::id))
+            .map(scanResult -> {
+                HashMap<String, ByteIterator> tuple = new HashMap<>();
+                if (!scanResult.idOnly()) {
+                  decodeStringSource(scanResult.contentAsObject().toString(), null, tuple);
+                }
+                return tuple;
+              })
+            .toStream()
+            .forEach(data::add);
         } else {
-          data2 = reactiveCollection.scan(ScanType.rangeScan(startTerm, endTerm))
-              .take(recordcount)
-              .blockLast();
+          reactiveCollection.scan(ScanType.rangeScan(startTerm, endTerm))
+            .take(recordcount)
+            .map(scanResult -> {
+                HashMap<String, ByteIterator> tuple = new HashMap<>();
+                if (!scanResult.idOnly()) {
+                  decodeStringSource(scanResult.contentAsObject().toString(), null, tuple);
+                }
+                return tuple;
+              })
+            .toStream()
+            .forEach(data::add);
         }
       }
 
       result.addAll(data);
+      System.out.println("Range scan completed. Found " + data.size() + " records.");
       return Status.OK;
     } catch (Throwable t) {
       errors.add(t);
@@ -1024,46 +1072,96 @@ public class Couchbase3Client extends DB {
     final ReactiveCollection reactiveCollection = collection.reactive();
 
     final List<HashMap<String, ByteIterator>> data = new ArrayList<HashMap<String, ByteIterator>>(recordcount);
-    ScanResult data2;
 
     try {
       if (rangeScanSampling) {
         if (ordered) {
-          data2 = reactiveCollection.scan(ScanType.samplingScan(recordcount))
-              .sort(Comparator.comparing(ScanResult::id))
-              .blockLast();
+          reactiveCollection.scan(ScanType.samplingScan(recordcount))
+            .sort(Comparator.comparing(ScanResult::id))
+            .take(recordcount)
+            .map(scanResult -> {
+                HashMap<String, ByteIterator> tuple = new HashMap<>();
+                if (!scanResult.idOnly()) {
+                  decodeStringSource(scanResult.contentAsObject().toString(), null, tuple);
+                }
+                return tuple;
+              })
+            .toStream()
+            .forEach(data::add);
         } else {
-          data2 = reactiveCollection.scan(ScanType.samplingScan(recordcount))
-              .blockLast();
+          reactiveCollection.scan(ScanType.samplingScan(recordcount))
+            .take(recordcount)
+            .map(scanResult -> {
+                HashMap<String, ByteIterator> tuple = new HashMap<>();
+                if (!scanResult.idOnly()) {
+                  decodeStringSource(scanResult.contentAsObject().toString(), null, tuple);
+                }
+                return tuple;
+              })
+            .toStream()
+            .forEach(data::add);
         }
       } else if (prefixScan) {
         final String prefix = startkey.substring(0, startkey.length() - 15);
         if (ordered) {
-          data2 = reactiveCollection.scan(ScanType.prefixScan(prefix))
-              .take(recordcount)
-              .sort(Comparator.comparing(ScanResult::id))
-              .blockLast();
+          reactiveCollection.scan(ScanType.prefixScan(prefix))
+            .take(recordcount)
+            .sort(Comparator.comparing(ScanResult::id))
+            .map(scanResult -> {
+                HashMap<String, ByteIterator> tuple = new HashMap<>();
+                if (!scanResult.idOnly()) {
+                  decodeStringSource(scanResult.contentAsObject().toString(), null, tuple);
+                }
+                return tuple;
+              })
+            .toStream()
+            .forEach(data::add);
         } else {
-          data2 = reactiveCollection.scan(ScanType.prefixScan(prefix))
-              .take(recordcount)
-              .blockLast();
+          reactiveCollection.scan(ScanType.prefixScan(prefix))
+            .take(recordcount)
+            .map(scanResult -> {
+                HashMap<String, ByteIterator> tuple = new HashMap<>();
+                if (!scanResult.idOnly()) {
+                  decodeStringSource(scanResult.contentAsObject().toString(), null, tuple);
+                }
+                return tuple;
+              })
+            .toStream()
+            .forEach(data::add);
         }
       } else {
         final ScanTerm startTerm = ScanTerm.inclusive(startkey);
         final ScanTerm endTerm = ScanTerm.inclusive(endkey);
         if (ordered) {
-          data2 = reactiveCollection.scan(ScanType.rangeScan(startTerm, endTerm))
-              .take(recordcount)
-              .sort(Comparator.comparing(ScanResult::id))
-              .blockLast();
+          reactiveCollection.scan(ScanType.rangeScan(startTerm, endTerm))
+            .take(recordcount)
+            .sort(Comparator.comparing(ScanResult::id))
+            .map(scanResult -> {
+                HashMap<String, ByteIterator> tuple = new HashMap<>();
+                if (!scanResult.idOnly()) {
+                  decodeStringSource(scanResult.contentAsObject().toString(), null, tuple);
+                }
+                return tuple;
+              })
+            .toStream()
+            .forEach(data::add);
         } else {
-          data2 = reactiveCollection.scan(ScanType.rangeScan(startTerm, endTerm))
-              .take(recordcount)
-              .blockLast();
+          reactiveCollection.scan(ScanType.rangeScan(startTerm, endTerm))
+            .take(recordcount)
+            .map(scanResult -> {
+                HashMap<String, ByteIterator> tuple = new HashMap<>();
+                if (!scanResult.idOnly()) {
+                  decodeStringSource(scanResult.contentAsObject().toString(), null, tuple);
+                }
+                return tuple;
+              })
+            .toStream()
+            .forEach(data::add);
         }
       }
 
       result.addAll(data);
+      System.out.println("Range scan completed. Found " + data.size() + " records.");
       return Status.OK;
     } catch (Throwable t) {
       errors.add(t);
