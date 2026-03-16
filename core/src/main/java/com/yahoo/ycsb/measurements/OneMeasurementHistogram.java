@@ -30,12 +30,19 @@ import java.util.Properties;
 public class OneMeasurementHistogram extends OneMeasurement {
   public static final String BUCKETS = "histogram.buckets";
   public static final String BUCKETS_DEFAULT = "1000";
+  public static final String BUCKET_SIZE = "histogram.bucket.size";
+  public static final String BUCKET_SIZE_DEFAULT = "1000";
   public static final String VERBOSE_PROPERTY = "measurement.histogram.verbose";
 
   /**
    * Specify the range of latencies to track in the histogram.
    */
   private final int buckets;
+
+  /**
+   * Specify the side of each bucket in us.
+   */
+  private final int bucketSize;
 
   /**
    * Groups operations in discrete blocks of 1ms width.
@@ -80,6 +87,7 @@ public class OneMeasurementHistogram extends OneMeasurement {
   public OneMeasurementHistogram(String name, Properties props) {
     super(name);
     buckets = Integer.parseInt(props.getProperty(BUCKETS, BUCKETS_DEFAULT));
+    bucketSize = Integer.parseInt(props.getProperty(BUCKET_SIZE, BUCKET_SIZE_DEFAULT));
     verbose = Boolean.valueOf(props.getProperty(VERBOSE_PROPERTY, String.valueOf(false)));
     histogram = new long[buckets];
     histogramoverflow = 0;
@@ -96,11 +104,11 @@ public class OneMeasurementHistogram extends OneMeasurement {
    * @see com.yahoo.ycsb.OneMeasurement#measure(int)
    */
   public synchronized void measure(int latency) {
-    //latency reported in us and collected in bucket by ms.
-    if (latency / 1000 >= buckets) {
+    //latency reported in us and collected in bucket depending on bucketSize.
+    if (latency / bucketSize >= buckets) {
       histogramoverflow++;
     } else {
-      histogram[latency / 1000]++;
+      histogram[latency / bucketSize]++;
     }
     operations++;
     totallatency += latency;
@@ -178,12 +186,21 @@ public class OneMeasurementHistogram extends OneMeasurement {
         }
         
         if (batchSum > 0) {
-          String range = batchStart + "-" + (batchEnd - 1) + "ms";
+          String range;
+          if (bucketSize >= 1000) {
+            range = (batchStart * bucketSize / 1000) + "-" + ((batchEnd - 1) * bucketSize / 1000) + "ms";
+          } else {
+            range = (batchStart * bucketSize) + "-" + ((batchEnd - 1) * bucketSize) + "us";
+          }
           exporter.write(getName(), range, batchSum);
         }
       }
       
-      exporter.write(getName(), ">" + buckets + "ms", histogramoverflow);
+      if (bucketSize >= 1000) {
+        exporter.write(getName() + "-HISTOGRAM", ">" + buckets * bucketSize / 1000 + "ms", histogramoverflow);
+      } else {
+        exporter.write(getName() + "-HISTOGRAM", ">" + buckets * bucketSize + "us", histogramoverflow);
+      }
     }
   }
 
