@@ -192,7 +192,7 @@ public class OneMeasurementHistogram extends OneMeasurement {
           } else {
             range = (batchStart * bucketSize) + "-" + ((batchEnd - 1) * bucketSize) + "us";
           }
-          exporter.write(getName(), range, batchSum);
+          exporter.write(getName() + "-HISTOGRAM", range, batchSum);
         }
       }
       
