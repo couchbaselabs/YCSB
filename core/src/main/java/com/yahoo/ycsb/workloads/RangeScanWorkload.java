@@ -25,6 +25,11 @@ public class RangeScanWorkload extends CoreWorkload {
    */
   public static final String RANGE_SCAN_PROPERTY_DEFAULT = "true";
 
+  /**
+   * Limit the number of attempts to find a valid range key to a reasonable number.
+   */
+  private static final int MAX_RANGE_KEY_ATTEMPTS = 100;
+
   protected boolean rangescan;
 
   /**
@@ -50,11 +55,19 @@ public class RangeScanWorkload extends CoreWorkload {
     HashSet<String> fields = null;
 
     if (rangescan) {
-      // get the last key
       long endKeynum = nextKeynum();
+      String endName = buildKeyName(endKeynum);
 
-      while (buildKeyName(endKeynum).compareTo(buildKeyName(keynum)) <= 0) {
+      int attempts = 0;
+      while (endName.equals(startkeyname) && attempts++ < MAX_RANGE_KEY_ATTEMPTS) {
         endKeynum = nextKeynum();
+        endName = buildKeyName(endKeynum);
+      }
+
+      if (startkeyname.compareTo(endName) > 0) {
+        String tmp = startkeyname;
+        startkeyname = endName;
+        endName = tmp;
       }
 
       startkeyname = "usertable:" + startkeyname;

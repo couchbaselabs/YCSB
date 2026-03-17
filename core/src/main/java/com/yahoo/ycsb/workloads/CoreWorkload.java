@@ -341,6 +341,7 @@ public class CoreWorkload extends Workload {
   protected int zeropadding;
   protected int insertionRetryLimit;
   protected int insertionRetryInterval;
+  private static final int NEXT_KEYNUM_MAX_ATTEMPTS = 10000;
 
   private Measurements measurements = Measurements.getMeasurements();
 
@@ -683,13 +684,21 @@ public class CoreWorkload extends Workload {
   long nextKeynum() {
     long keynum;
     if (keychooser instanceof ExponentialGenerator) {
+      int attempts = 0;
       do {
         keynum = transactioninsertkeysequence.lastValue() - keychooser.nextValue().longValue();
-      } while (keynum < 0);
+      } while (keynum < 0 && ++attempts < NEXT_KEYNUM_MAX_ATTEMPTS);
+      if (keynum < 0) {
+        keynum = 0;
+      }
     } else {
+      int attempts = 0;
       do {
         keynum = keychooser.nextValue().longValue();
-      } while (keynum > transactioninsertkeysequence.lastValue());
+      } while (keynum > transactioninsertkeysequence.lastValue() && ++attempts < NEXT_KEYNUM_MAX_ATTEMPTS);
+      if (keynum > transactioninsertkeysequence.lastValue()) {
+        keynum = transactioninsertkeysequence.lastValue();
+      }
     }
     return keynum;
   }
