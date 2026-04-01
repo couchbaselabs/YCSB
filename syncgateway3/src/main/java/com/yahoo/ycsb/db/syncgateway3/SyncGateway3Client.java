@@ -118,6 +118,9 @@ public class SyncGateway3Client extends DB {
   private static final String SG_RETRY_DELAY = "syncgateway.retrydelay";
   private static final String SG_E2E_CHANNEL_LIST = "syncgateway.channellist";
   private static final String SG_E2E_USER = "syncgateway.user";
+  private static final String SG_EXPORT_FILE = "syncgateway.exportfile";
+  private static PrintWriter exportWriter = null;
+  private static final Object exportWriterLock = new Object();
   private String portAdmin;
   private String portPublic;
   private boolean useAuth;
@@ -281,6 +284,19 @@ public class SyncGateway3Client extends DB {
       System.exit(1);
     }
 
+    String exportFile = props.getProperty(SG_EXPORT_FILE, "");
+    if (!exportFile.isEmpty()) {
+      synchronized (exportWriterLock) {
+        if (exportWriter == null) {
+          try {
+            exportWriter = new PrintWriter(new BufferedWriter(new FileWriter(exportFile, true)));
+          } catch (IOException e) {
+            throw new DBException("Failed to open export file: " + exportFile, e);
+          }
+        }
+      }
+    }
+
     collections = props.getProperty(Client.COLLECTIONS_PARAM, _DEFAULT).split(",");
     scopes = props.getProperty(Client.SCOPES_PARAM, _DEFAULT).split(",");
     usersPerCollection = totalUsers / (collections.length * scopes.length);
@@ -301,6 +317,18 @@ public class SyncGateway3Client extends DB {
     if (warmupChannelCache) {
       System.err.println("Gets here.");
       warmupChannelCache();
+    }
+
+  }
+
+  @Override
+  public void cleanup() throws DBException {
+    synchronized (exportWriterLock) {
+      if (exportWriter != null) {
+        exportWriter.flush();
+        exportWriter.close();
+        exportWriter = null;
+      }
     }
   }
 
@@ -648,16 +676,24 @@ public class SyncGateway3Client extends DB {
 
   private Status e2eInsertDocument(String table, String key, Map<String, ByteIterator> values,
       String scope, String coll) {
-    String port = (useAuth) ? portPublic : portAdmin;
-    String requestBody = null;
-    String fullUrl;
     currentIterationUser = e2euser;
-    requestBody = e2eBuildDocumentFromMap(key, values);
-    fullUrl = http + getRandomHost() + ":" + port + documentEndpoint + getKeyspace(scope, coll) + "/";
+    String documentJson = e2eBuildDocumentFromMap(key, values);
+
+    synchronized (exportWriterLock) {
+      if (exportWriter != null) {
+        exportWriter.println(documentJson);
+        exportWriter.flush();
+        incrementLocalSequenceForUser();
+        return Status.OK;
+      }
+    }
+
+    String port = (useAuth) ? portPublic : portAdmin;
+    String fullUrl = http + getRandomHost() + ":" + port + documentEndpoint + getKeyspace(scope, coll) + "/";
     HttpPost httpPostRequest = new HttpPost(fullUrl);
     int responseCode;
     try {
-      responseCode = httpExecute(httpPostRequest, requestBody);
+      responseCode = httpExecute(httpPostRequest, documentJson);
     } catch (Exception e) {
       responseCode = handleExceptions(e, fullUrl, "POST");
     }
