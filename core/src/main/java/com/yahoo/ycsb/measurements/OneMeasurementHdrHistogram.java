@@ -135,7 +135,8 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
           value = (int)v.getValueIteratedTo();
         }
   
-        exporter.write(getName(), Integer.toString(value), (double)v.getCountAtValueIteratedTo());
+        String opName = getName() + "-HISTOGRAM";
+        exporter.write(opName, Integer.toString(value), (double)v.getCountAtValueIteratedTo());
       }
     }
   }
