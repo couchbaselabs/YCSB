@@ -53,13 +53,24 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
   /**
    * The default value for the hdrhistogram.percentiles property.
    */
-  public static final String PERCENTILES_PROPERTY_DEFAULT = "95,99";
+  public static final String PERCENTILES_PROPERTY_DEFAULT = "25,50,60,75,85,95,99";
+  
+  /**
+   * The name of the property for determining if we should print out the buckets.
+   */
+  public static final String VERBOSE_PROPERTY = "measurement.histogram.verbose";
 
+  /**
+   * Whether or not to emit the histogram buckets.
+   */
+  private final boolean verbose;
+  
   private final List<Double> percentiles;
 
   public OneMeasurementHdrHistogram(String name, Properties props) {
     super(name);
     percentiles = getPercentileValues(props.getProperty(PERCENTILES_PROPERTY, PERCENTILES_PROPERTY_DEFAULT));
+    verbose = Boolean.valueOf(props.getProperty(VERBOSE_PROPERTY, String.valueOf(false)));
     boolean shouldLog = Boolean.parseBoolean(props.getProperty("hdrhistogram.fileoutput", "false"));
     if (!shouldLog) {
       log = null;
@@ -115,15 +126,18 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
     exportStatusCounts(exporter);
 
     // also export totalHistogram
-    for (HistogramIterationValue v : totalHistogram.recordedValues()) {
-      int value;
-      if (v.getValueIteratedTo() > (long)Integer.MAX_VALUE) {
-        value = Integer.MAX_VALUE;
-      } else {
-        value = (int)v.getValueIteratedTo();
+    if (verbose) {
+      for (HistogramIterationValue v : totalHistogram.recordedValues()) {
+        int value;
+        if (v.getValueIteratedTo() > (long)Integer.MAX_VALUE) {
+          value = Integer.MAX_VALUE;
+        } else {
+          value = (int)v.getValueIteratedTo();
+        }
+  
+        String opName = getName() + "-HISTOGRAM";
+        exporter.write(opName, Integer.toString(value), (double)v.getCountAtValueIteratedTo());
       }
-
-      exporter.write(getName(), Integer.toString(value), (double)v.getCountAtValueIteratedTo());
     }
   }
 
