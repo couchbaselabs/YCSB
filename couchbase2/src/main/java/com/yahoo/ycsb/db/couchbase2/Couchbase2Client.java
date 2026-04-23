@@ -138,7 +138,7 @@ public class Couchbase2Client extends DB {
   private String soeReadN1qlQuery;
   private int documentExpiry;
   private Boolean isSOETest;
-  
+
   @Override
   public void init() throws DBException {
     Properties props = getProperties();
@@ -162,8 +162,8 @@ public class Couchbase2Client extends DB {
     runtimeMetricsInterval = Integer.parseInt(props.getProperty("couchbase.runtimeMetricsInterval", "0"));
     documentExpiry = Integer.parseInt(props.getProperty("couchbase.documentExpiry", "0"));
     isSOETest = props.getProperty("couchbase.soe", "false").equals("true");
-    scanAllQuery =  "SELECT RAW meta().id FROM `" + bucketName +
-      "` WHERE meta().id >= $1 ORDER BY meta().id LIMIT $2";
+    scanAllQuery = "SELECT RAW meta().id FROM `" + bucketName +
+        "` WHERE meta().id >= $1 ORDER BY meta().id LIMIT $2";
 
     soeQuerySelectIDClause = "SELECT RAW meta().id FROM";
     soeQuerySelectAllClause = "SELECT RAW `" + bucketName + "` FROM ";
@@ -174,10 +174,10 @@ public class Couchbase2Client extends DB {
     soeInsertN1qlQuery = "INSERT INTO `" + bucketName
         + "`(KEY,VALUE) VALUES ($1,$2)";
 
-    soeScanN1qlQuery =  soeQuerySelectAllClause + " `" + bucketName +
+    soeScanN1qlQuery = soeQuerySelectAllClause + " `" + bucketName +
         "` WHERE meta().id >= $1 ORDER BY meta().id LIMIT $2";
 
-    soeScanKVQuery =  soeQuerySelectIDClause + " `" + bucketName +
+    soeScanKVQuery = soeQuerySelectIDClause + " `" + bucketName +
         "` WHERE meta().id >= $1 ORDER BY meta().id LIMIT $2";
 
     try {
@@ -187,10 +187,10 @@ public class Couchbase2Client extends DB {
           LatencyMetricsCollectorConfig latencyConfig = networkMetricsInterval <= 0
               ? DefaultLatencyMetricsCollectorConfig.disabled()
               : DefaultLatencyMetricsCollectorConfig
-                  .builder()
-                  .emitFrequency(networkMetricsInterval)
-                  .emitFrequencyUnit(TimeUnit.SECONDS)
-                  .build();
+              .builder()
+              .emitFrequency(networkMetricsInterval)
+              .emitFrequencyUnit(TimeUnit.SECONDS)
+              .build();
 
           MetricsCollectorConfig runtimeConfig = runtimeMetricsInterval <= 0
               ? DefaultMetricsCollectorConfig.disabled()
@@ -279,7 +279,7 @@ public class Couchbase2Client extends DB {
 
         try {
           JsonNode json = JacksonTransformers.MAPPER.readTree(doc.content());
-          for (Iterator<Map.Entry<String, JsonNode>> jsonFields = json.fields(); jsonFields.hasNext();) {
+          for (Iterator<Map.Entry<String, JsonNode>> jsonFields = json.fields(); jsonFields.hasNext(); ) {
             Map.Entry<String, JsonNode> jsonField = jsonFields.next();
             String name = jsonField.getKey();
             if (name.equals(Generator.SOE_FIELD_CUSTOMER_ORDER_LIST)) {
@@ -290,7 +290,7 @@ public class Couchbase2Client extends DB {
               }
               if (orders.size() > 0) {
                 String pickedOrder;
-                if (orders.size() >1) {
+                if (orders.size() > 1) {
                   Collections.shuffle(orders);
                 }
                 pickedOrder = orders.get(0);
@@ -318,7 +318,7 @@ public class Couchbase2Client extends DB {
   // *********************  SOE Insert ********************************
 
   @Override
-  public Status soeInsert(String table, HashMap<String, ByteIterator> result, Generator gen)  {
+  public Status soeInsert(String table, HashMap<String, ByteIterator> result, Generator gen) {
 
     try {
       //Pair<String, String> inserDocPair = gen.getInsertDocument();
@@ -336,7 +336,7 @@ public class Couchbase2Client extends DB {
 
   private Status soeInsertKv(Generator gen) {
     int tries = 60; // roughly 60 seconds with the 1 second sleep, not 100% accurate.
-    for(int i = 0; i < tries; i++) {
+    for (int i = 0; i < tries; i++) {
       try {
         waitForMutationResponse(bucket.async().insert(
             RawJsonDocument.create(gen.getPredicate().getDocid(), documentExpiry, gen.getPredicate().getValueA()),
@@ -376,7 +376,7 @@ public class Couchbase2Client extends DB {
   // *********************  SOE Update ********************************
 
   @Override
-  public Status soeUpdate(String table, HashMap<String, ByteIterator> result, Generator gen)  {
+  public Status soeUpdate(String table, HashMap<String, ByteIterator> result, Generator gen) {
     try {
       if (kv) {
         return soeUpdateKv(gen);
@@ -389,7 +389,7 @@ public class Couchbase2Client extends DB {
     }
   }
 
-  private Status soeUpdateKv(Generator gen)  {
+  private Status soeUpdateKv(Generator gen) {
 
     waitForMutationResponse(bucket.async().replace(
         RawJsonDocument.create(gen.getCustomerIdWithDistribution(), documentExpiry, gen.getPredicate().getValueA()),
@@ -400,8 +400,7 @@ public class Couchbase2Client extends DB {
     return Status.OK;
   }
 
-  private Status soeUpdateN1ql(Generator gen)
-  throws Exception {
+  private Status soeUpdateN1ql(Generator gen) {
     String updateQuery = "UPDATE `" + bucketName + "` USE KEYS [$1] SET " +
         gen.getPredicate().getNestedPredicateA().getName() + " = $2";
 
@@ -418,7 +417,7 @@ public class Couchbase2Client extends DB {
   }
 
 
-// *********************  SOE Read ********************************
+  // *********************  SOE Read ********************************
   @Override
   public Status soeRead(String table, HashMap<String, ByteIterator> result, Generator gen) {
     try {
@@ -523,7 +522,7 @@ public class Couchbase2Client extends DB {
           @Override
           public Observable<RawJsonDocument> call(AsyncN1qlQueryRow row) {
             String id = new String(row.byteValue()).trim();
-            return bucket.async().get(id.substring(1, id.length()-1), RawJsonDocument.class);
+            return bucket.async().get(id.substring(1, id.length() - 1), RawJsonDocument.class);
           }
         })
         .map(new Func1<RawJsonDocument, HashMap<String, ByteIterator>>() {
@@ -593,7 +592,7 @@ public class Couchbase2Client extends DB {
     int offset = gen.getRandomOffset();
 
     final List<HashMap<String, ByteIterator>> data = new ArrayList<HashMap<String, ByteIterator>>(recordcount);
-    String soeSearchKvQuery = soeQuerySelectIDClause + " `" +  bucketName + "` WHERE " +
+    String soeSearchKvQuery = soeQuerySelectIDClause + " `" + bucketName + "` WHERE " +
         gen.getPredicatesSequence().get(0).getName() + "." +
         gen.getPredicatesSequence().get(0).getNestedPredicateA().getName() + "= $1 AND " +
         gen.getPredicatesSequence().get(1).getName() + " = $2 AND DATE_PART_STR(" +
@@ -630,7 +629,7 @@ public class Couchbase2Client extends DB {
           @Override
           public Observable<RawJsonDocument> call(AsyncN1qlQueryRow row) {
             String id = new String(row.byteValue()).trim();
-            return bucket.async().get(id.substring(1, id.length()-1), RawJsonDocument.class);
+            return bucket.async().get(id.substring(1, id.length() - 1), RawJsonDocument.class);
           }
         })
         .map(new Func1<RawJsonDocument, HashMap<String, ByteIterator>>() {
@@ -657,7 +656,7 @@ public class Couchbase2Client extends DB {
     int recordcount = gen.getRandomLimit();
     int offset = gen.getRandomOffset();
 
-    String soeSearchN1qlQuery = soeQuerySelectAllClause + " `" +  bucketName + "` WHERE " +
+    String soeSearchN1qlQuery = soeQuerySelectAllClause + " `" + bucketName + "` WHERE " +
         gen.getPredicatesSequence().get(0).getName() + "." +
         gen.getPredicatesSequence().get(0).getNestedPredicateA().getName() + "= $1 AND " +
         gen.getPredicatesSequence().get(1).getName() + " = $2 AND DATE_PART_STR(" +
@@ -712,7 +711,7 @@ public class Couchbase2Client extends DB {
     int offset = gen.getRandomOffset();
 
     final List<HashMap<String, ByteIterator>> data = new ArrayList<HashMap<String, ByteIterator>>(recordcount);
-    String soePageKvQuery = soeQuerySelectIDClause + " `" +  bucketName + "` WHERE " + gen.getPredicate().getName() +
+    String soePageKvQuery = soeQuerySelectIDClause + " `" + bucketName + "` WHERE " + gen.getPredicate().getName() +
         "." + gen.getPredicate().getNestedPredicateA().getName() + " = $1 OFFSET $2 LIMIT $3";
 
     bucket.async()
@@ -740,7 +739,7 @@ public class Couchbase2Client extends DB {
           @Override
           public Observable<RawJsonDocument> call(AsyncN1qlQueryRow row) {
             String id = new String(row.byteValue()).trim();
-            return bucket.async().get(id.substring(1, id.length()-1), RawJsonDocument.class);
+            return bucket.async().get(id.substring(1, id.length() - 1), RawJsonDocument.class);
           }
         })
         .map(new Func1<RawJsonDocument, HashMap<String, ByteIterator>>() {
@@ -770,7 +769,7 @@ public class Couchbase2Client extends DB {
     int recordcount = gen.getRandomLimit();
     int offset = gen.getRandomOffset();
 
-    String soePageN1qlQuery = soeQuerySelectAllClause + " `" +  bucketName + "` WHERE " +
+    String soePageN1qlQuery = soeQuerySelectAllClause + " `" + bucketName + "` WHERE " +
         gen.getPredicate().getName() + "." + gen.getPredicate().getNestedPredicateA().getName() +
         " = $1 OFFSET $2 LIMIT $3";
 
@@ -815,7 +814,7 @@ public class Couchbase2Client extends DB {
     int recordcount = gen.getRandomLimit();
 
     final List<HashMap<String, ByteIterator>> data = new ArrayList<HashMap<String, ByteIterator>>(recordcount);
-    String soeNestScanKvQuery = soeQuerySelectIDClause + " `" +  bucketName + "` WHERE " +
+    String soeNestScanKvQuery = soeQuerySelectIDClause + " `" + bucketName + "` WHERE " +
         gen.getPredicate().getName() + "." +
         gen.getPredicate().getNestedPredicateA().getName() + "." +
         gen.getPredicate().getNestedPredicateA().getNestedPredicateA().getName() + " = $1  LIMIT $2";
@@ -823,7 +822,7 @@ public class Couchbase2Client extends DB {
     bucket.async()
         .query(N1qlQuery.parameterized(
             soeNestScanKvQuery,
-            JsonArray.from(gen.getPredicate().getNestedPredicateA().getNestedPredicateA().getValueA(),  recordcount),
+            JsonArray.from(gen.getPredicate().getNestedPredicateA().getNestedPredicateA().getValueA(), recordcount),
             N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
         ))
         .doOnNext(new Action1<AsyncN1qlQueryResult>() {
@@ -845,7 +844,7 @@ public class Couchbase2Client extends DB {
           @Override
           public Observable<RawJsonDocument> call(AsyncN1qlQueryRow row) {
             String id = new String(row.byteValue()).trim();
-            return bucket.async().get(id.substring(1, id.length()-1), RawJsonDocument.class);
+            return bucket.async().get(id.substring(1, id.length() - 1), RawJsonDocument.class);
           }
         })
         .map(new Func1<RawJsonDocument, HashMap<String, ByteIterator>>() {
@@ -871,14 +870,14 @@ public class Couchbase2Client extends DB {
 
   private Status soeNestScanN1ql(final Vector<HashMap<String, ByteIterator>> result, Generator gen) {
     int recordcount = gen.getRandomLimit();
-    String soeNestScanN1qlQuery = soeQuerySelectAllClause + " `" +  bucketName + "` WHERE " +
+    String soeNestScanN1qlQuery = soeQuerySelectAllClause + " `" + bucketName + "` WHERE " +
         gen.getPredicate().getName() + "." +
         gen.getPredicate().getNestedPredicateA().getName() + "." +
         gen.getPredicate().getNestedPredicateA().getNestedPredicateA().getName() + " = $1  LIMIT $2";
 
     N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(
         soeNestScanN1qlQuery,
-        JsonArray.from(gen.getPredicate().getNestedPredicateA().getNestedPredicateA().getValueA(),  recordcount),
+        JsonArray.from(gen.getPredicate().getNestedPredicateA().getNestedPredicateA().getValueA(), recordcount),
         N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
     ));
 
@@ -918,13 +917,13 @@ public class Couchbase2Client extends DB {
     int recordcount = gen.getRandomLimit();
 
     final List<HashMap<String, ByteIterator>> data = new ArrayList<HashMap<String, ByteIterator>>(recordcount);
-    String soeArrayScanKvQuery = soeQuerySelectIDClause + " `" +  bucketName + "` WHERE ANY v IN " +
+    String soeArrayScanKvQuery = soeQuerySelectIDClause + " `" + bucketName + "` WHERE ANY v IN " +
         gen.getPredicate().getName() + " SATISFIES v = $1 END ORDER BY meta().id LIMIT $2";
 
     bucket.async()
         .query(N1qlQuery.parameterized(
             soeArrayScanKvQuery,
-            JsonArray.from(gen.getPredicate().getValueA(),  recordcount),
+            JsonArray.from(gen.getPredicate().getValueA(), recordcount),
             N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
         ))
         .doOnNext(new Action1<AsyncN1qlQueryResult>() {
@@ -946,7 +945,7 @@ public class Couchbase2Client extends DB {
           @Override
           public Observable<RawJsonDocument> call(AsyncN1qlQueryRow row) {
             String id = new String(row.byteValue()).trim();
-            return bucket.async().get(id.substring(1, id.length()-1), RawJsonDocument.class);
+            return bucket.async().get(id.substring(1, id.length() - 1), RawJsonDocument.class);
           }
         })
         .map(new Func1<RawJsonDocument, HashMap<String, ByteIterator>>() {
@@ -973,12 +972,12 @@ public class Couchbase2Client extends DB {
   private Status soeArrayScanN1ql(final Vector<HashMap<String, ByteIterator>> result, Generator gen) {
     int recordcount = gen.getRandomLimit();
 
-    String soeArrayScanN1qlQuery = soeQuerySelectAllClause + "`" +  bucketName + "` WHERE ANY v IN " +
+    String soeArrayScanN1qlQuery = soeQuerySelectAllClause + "`" + bucketName + "` WHERE ANY v IN " +
         gen.getPredicate().getName() + " SATISFIES v = $1 END ORDER BY meta().id LIMIT $2";
 
     N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(
         soeArrayScanN1qlQuery,
-        JsonArray.from(gen.getPredicate().getValueA(),  recordcount),
+        JsonArray.from(gen.getPredicate().getValueA(), recordcount),
         N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
     ));
 
@@ -1025,7 +1024,7 @@ public class Couchbase2Client extends DB {
     String cityCountryValue = gen.getPredicate().getNestedPredicateA().getValueA() + "." +
         gen.getPredicate().getNestedPredicateB().getValueA();
 
-    String soeArrayDeepScanKvQuery =  soeQuerySelectIDClause + " `" +  bucketName + "` WHERE ANY v IN "
+    String soeArrayDeepScanKvQuery = soeQuerySelectIDClause + " `" + bucketName + "` WHERE ANY v IN "
         + visitedPlacesFieldName + " SATISFIES  ANY c IN v." + cityFieldName + " SATISFIES (v."
         + countryFieldName + " || \".\" || c) = $1  END END  ORDER BY META().id LIMIT $2";
 
@@ -1054,7 +1053,7 @@ public class Couchbase2Client extends DB {
           @Override
           public Observable<RawJsonDocument> call(AsyncN1qlQueryRow row) {
             String id = new String(row.byteValue()).trim();
-            return bucket.async().get(id.substring(1, id.length()-1), RawJsonDocument.class);
+            return bucket.async().get(id.substring(1, id.length() - 1), RawJsonDocument.class);
           }
         })
         .map(new Func1<RawJsonDocument, HashMap<String, ByteIterator>>() {
@@ -1088,7 +1087,7 @@ public class Couchbase2Client extends DB {
     String cityCountryValue = gen.getPredicate().getNestedPredicateA().getValueA() + "." +
         gen.getPredicate().getNestedPredicateB().getValueA();
 
-    String soeArrayDeepScanN1qlQuery =  soeQuerySelectAllClause + " `" +  bucketName + "` WHERE ANY v IN "
+    String soeArrayDeepScanN1qlQuery = soeQuerySelectAllClause + " `" + bucketName + "` WHERE ANY v IN "
         + visitedPlacesFieldName + " SATISFIES  ANY c IN v." + cityFieldName + " SATISFIES (v."
         + countryFieldName + " || \".\" || c) = $1  END END  ORDER BY META().id LIMIT $2";
 
@@ -1136,15 +1135,15 @@ public class Couchbase2Client extends DB {
 
   private Status soeReport1N1ql(final Vector<HashMap<String, ByteIterator>> result, Generator gen) {
 
-    String soeReport1N1qlQuery = "SELECT * FROM `" +  bucketName + "` c1 INNER JOIN `" +
+    String soeReport1N1qlQuery = "SELECT * FROM `" + bucketName + "` c1 INNER JOIN `" +
         bucketName + "` o1 ON KEYS c1." + gen.getPredicatesSequence().get(0).getName() + " WHERE c1." +
         gen.getPredicatesSequence().get(1).getName() + "." +
-        gen.getPredicatesSequence().get(1).getNestedPredicateA().getName()+ " = $1 ";
+        gen.getPredicatesSequence().get(1).getNestedPredicateA().getName() + " = $1 ";
 
     N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(
-         soeReport1N1qlQuery,
-         JsonArray.from(gen.getPredicatesSequence().get(1).getNestedPredicateA().getValueA()),
-         N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
+        soeReport1N1qlQuery,
+        JsonArray.from(gen.getPredicatesSequence().get(1).getNestedPredicateA().getValueA()),
+        N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
     ));
     if (!queryResult.parseSuccess() || !queryResult.finalSuccess()) {
       throw new RuntimeException("Error while parsing N1QL Result. Query: " + soeReport1N1qlQuery
@@ -1185,14 +1184,14 @@ public class Couchbase2Client extends DB {
 
     String nameOrderMonth = gen.getPredicatesSequence().get(0).getName();
     String nameOrderSaleprice = gen.getPredicatesSequence().get(1).getName();
-    String nameAddress =  gen.getPredicatesSequence().get(2).getName();
-    String nameAddressZip =  gen.getPredicatesSequence().get(2).getNestedPredicateA().getName();
+    String nameAddress = gen.getPredicatesSequence().get(2).getName();
+    String nameAddressZip = gen.getPredicatesSequence().get(2).getNestedPredicateA().getName();
     String nameOrderlist = gen.getPredicatesSequence().get(3).getName();
     String valueOrderMonth = gen.getPredicatesSequence().get(0).getValueA();
-    String valueAddressZip =  gen.getPredicatesSequence().get(2).getNestedPredicateA().getValueA();
+    String valueAddressZip = gen.getPredicatesSequence().get(2).getNestedPredicateA().getValueA();
 
     String soeReport2N1qlQuery = "SELECT o2." + nameOrderMonth + ", c2." + nameAddress + "." + nameAddressZip +
-        ", SUM(o2." + nameOrderSaleprice + ") FROM `" +  bucketName  + "` c2 INNER JOIN `" +  bucketName +
+        ", SUM(o2." + nameOrderSaleprice + ") FROM `" + bucketName + "` c2 INNER JOIN `" + bucketName +
         "` o2 ON KEYS c2." + nameOrderlist + " WHERE c2." + nameAddress + "." + nameAddressZip +
         " = $1 AND o2." + nameOrderMonth + " = $2 GROUP BY o2." + nameOrderMonth + ", c2." + nameAddress +
         "." + nameAddressZip + " ORDER BY SUM(o2." + nameOrderSaleprice + ")";
@@ -1218,10 +1217,9 @@ public class Couchbase2Client extends DB {
   // ************************************************************************************************
 
 
-
   @Override
   public Status read(final String table, final String key, Set<String> fields,
-      final HashMap<String, ByteIterator> result) {
+                     final HashMap<String, ByteIterator> result) {
     try {
       String docId = formatId(table, key);
       if (kv) {
@@ -1239,13 +1237,13 @@ public class Couchbase2Client extends DB {
   /**
    * Performs the {@link #read(String, String, Set, HashMap)} operation via Key/Value ("get").
    *
-   * @param docId the document ID
+   * @param docId  the document ID
    * @param fields the fields to be loaded
    * @param result the result map where the doc needs to be converted into
    * @return The result of the operation.
    */
   private Status readKv(final String docId, final Set<String> fields, final HashMap<String, ByteIterator> result)
-    throws Exception {
+      throws Exception {
     RawJsonDocument loaded = bucket.get(docId, RawJsonDocument.class);
     if (loaded == null) {
       return Status.NOT_FOUND;
@@ -1256,16 +1254,16 @@ public class Couchbase2Client extends DB {
 
   /**
    * Performs the {@link #read(String, String, Set, HashMap)} operation via N1QL ("SELECT").
-   *
+   * <p>
    * If this option should be used, the "-p couchbase.kv=false" property must be set.
    *
-   * @param docId the document ID
+   * @param docId  the document ID
    * @param fields the fields to be loaded
    * @param result the result map where the doc needs to be converted into
    * @return The result of the operation.
    */
   private Status readN1ql(final String docId, Set<String> fields, final HashMap<String, ByteIterator> result)
-    throws Exception {
+      throws Exception {
     String readQuery = "SELECT " + joinFields(fields) + " FROM `" + bucketName + "` USE KEYS [$1]";
     N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(
         readQuery,
@@ -1275,7 +1273,7 @@ public class Couchbase2Client extends DB {
 
     if (!queryResult.parseSuccess() || !queryResult.finalSuccess()) {
       throw new DBException("Error while parsing N1QL Result. Query: " + readQuery
-        + ", Errors: " + queryResult.errors());
+          + ", Errors: " + queryResult.errors());
     }
 
     N1qlQueryRow row;
@@ -1321,7 +1319,7 @@ public class Couchbase2Client extends DB {
   /**
    * Performs the {@link #update(String, String, HashMap)} operation via Key/Value ("replace").
    *
-   * @param docId the document ID
+   * @param docId  the document ID
    * @param values the values to update the document with.
    * @return The result of the operation.
    */
@@ -1337,15 +1335,15 @@ public class Couchbase2Client extends DB {
 
   /**
    * Performs the {@link #update(String, String, HashMap)} operation via N1QL ("UPDATE").
-   *
+   * <p>
    * If this option should be used, the "-p couchbase.kv=false" property must be set.
    *
-   * @param docId the document ID
+   * @param docId  the document ID
    * @param values the values to update the document with.
    * @return The result of the operation.
    */
   private Status updateN1ql(final String docId, final HashMap<String, ByteIterator> values)
-    throws Exception {
+      throws Exception {
     String fields = encodeN1qlFields(values);
     String updateQuery = "UPDATE `" + bucketName + "` USE KEYS [$1] SET " + fields;
 
@@ -1357,7 +1355,7 @@ public class Couchbase2Client extends DB {
 
     if (!queryResult.parseSuccess() || !queryResult.finalSuccess()) {
       throw new DBException("Error while parsing N1QL Result. Query: " + updateQuery
-        + ", Errors: " + queryResult.errors());
+          + ", Errors: " + queryResult.errors());
     }
     return Status.OK;
   }
@@ -1385,19 +1383,19 @@ public class Couchbase2Client extends DB {
 
   /**
    * Performs the {@link #insert(String, String, HashMap)} operation via Key/Value ("INSERT").
-   *
+   * <p>
    * Note that during the "load" phase it makes sense to retry TMPFAILS (so that even if the server is
    * overloaded temporarily the ops will succeed eventually). The current code will retry TMPFAILs
    * for maximum of one minute and then bubble up the error.
    *
-   * @param docId the document ID
+   * @param docId  the document ID
    * @param values the values to update the document with.
    * @return The result of the operation.
    */
   private Status insertKv(final String docId, final HashMap<String, ByteIterator> values) {
     int tries = 60; // roughly 60 seconds with the 1 second sleep, not 100% accurate.
 
-    for(int i = 0; i < tries; i++) {
+    for (int i = 0; i < tries; i++) {
       try {
         waitForMutationResponse(bucket.async().insert(
             RawJsonDocument.create(docId, documentExpiry, encode(values)),
@@ -1415,20 +1413,20 @@ public class Couchbase2Client extends DB {
     }
 
     throw new RuntimeException("Still receiving TMPFAIL from the server after trying " + tries + " times. " +
-      "Check your server.");
+        "Check your server.");
   }
 
   /**
    * Performs the {@link #insert(String, String, HashMap)} operation via N1QL ("INSERT").
-   *
+   * <p>
    * If this option should be used, the "-p couchbase.kv=false" property must be set.
    *
-   * @param docId the document ID
+   * @param docId  the document ID
    * @param values the values to update the document with.
    * @return The result of the operation.
    */
   private Status insertN1ql(final String docId, final HashMap<String, ByteIterator> values)
-    throws Exception {
+      throws Exception {
     String insertQuery = "INSERT INTO `" + bucketName + "`(KEY,VALUE) VALUES ($1,$2)";
 
     N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(
@@ -1439,18 +1437,18 @@ public class Couchbase2Client extends DB {
 
     if (!queryResult.parseSuccess() || !queryResult.finalSuccess()) {
       throw new DBException("Error while parsing N1QL Result. Query: " + insertQuery
-        + ", Errors: " + queryResult.errors());
+          + ", Errors: " + queryResult.errors());
     }
     return Status.OK;
   }
 
   /**
    * Performs an upsert instead of insert or update using either Key/Value or N1QL.
-   *
+   * <p>
    * If this option should be used, the "-p couchbase.upsert=true" property must be set.
    *
-   * @param table The name of the table
-   * @param key The record key of the record to insert.
+   * @param table  The name of the table
+   * @param key    The record key of the record to insert.
    * @param values A HashMap of field/value pairs to insert in the record
    * @return The result of the operation.
    */
@@ -1470,10 +1468,10 @@ public class Couchbase2Client extends DB {
 
   /**
    * Performs the {@link #upsert(String, String, HashMap)} operation via Key/Value ("upsert").
-   *
+   * <p>
    * If this option should be used, the "-p couchbase.upsert=true" property must be set.
    *
-   * @param docId the document ID
+   * @param docId  the document ID
    * @param values the values to update the document with.
    * @return The result of the operation.
    */
@@ -1488,15 +1486,15 @@ public class Couchbase2Client extends DB {
 
   /**
    * Performs the {@link #upsert(String, String, HashMap)} operation via N1QL ("UPSERT").
-   *
+   * <p>
    * If this option should be used, the "-p couchbase.upsert=true -p couchbase.kv=false" properties must be set.
    *
-   * @param docId the document ID
+   * @param docId  the document ID
    * @param values the values to update the document with.
    * @return The result of the operation.
    */
   private Status upsertN1ql(final String docId, final HashMap<String, ByteIterator> values)
-    throws Exception {
+      throws Exception {
     String upsertQuery = "UPSERT INTO `" + bucketName + "`(KEY,VALUE) VALUES ($1,$2)";
 
     N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(
@@ -1507,7 +1505,7 @@ public class Couchbase2Client extends DB {
 
     if (!queryResult.parseSuccess() || !queryResult.finalSuccess()) {
       throw new DBException("Error while parsing N1QL Result. Query: " + upsertQuery
-        + ", Errors: " + queryResult.errors());
+          + ", Errors: " + queryResult.errors());
     }
     return Status.OK;
   }
@@ -1544,7 +1542,7 @@ public class Couchbase2Client extends DB {
 
   /**
    * Performs the {@link #delete(String, String)} (String, String)} operation via N1QL ("DELETE").
-   *
+   * <p>
    * If this option should be used, the "-p couchbase.kv=false" property must be set.
    *
    * @param docId the document ID.
@@ -1560,14 +1558,14 @@ public class Couchbase2Client extends DB {
 
     if (!queryResult.parseSuccess() || !queryResult.finalSuccess()) {
       throw new DBException("Error while parsing N1QL Result. Query: " + deleteQuery
-        + ", Errors: " + queryResult.errors());
+          + ", Errors: " + queryResult.errors());
     }
     return Status.OK;
   }
 
   @Override
   public Status scan(final String table, final String startkey, final int recordcount, final Set<String> fields,
-      final Vector<HashMap<String, ByteIterator>> result) {
+                     final Vector<HashMap<String, ByteIterator>> result) {
     try {
       if (fields == null || fields.isEmpty()) {
         return scanAllFields(table, startkey, recordcount, result);
@@ -1582,25 +1580,25 @@ public class Couchbase2Client extends DB {
 
   /**
    * Performs the {@link #scan(String, String, int, Set, Vector)} operation, optimized for all fields.
-   *
+   * <p>
    * Since the full document bodies need to be loaded anyways, it makes sense to just grab the document IDs
    * from N1QL and then perform the bulk loading via KV for better performance. This is a usual pattern with
    * Couchbase and shows the benefits of using both N1QL and KV together.
    *
-   * @param table The name of the table
-   * @param startkey The record key of the first record to read.
+   * @param table       The name of the table
+   * @param startkey    The record key of the first record to read.
    * @param recordcount The number of records to read
-   * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+   * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
    * @return The result of the operation.
    */
   private Status scanAllFields(final String table, final String startkey, final int recordcount,
-      final Vector<HashMap<String, ByteIterator>> result) {
+                               final Vector<HashMap<String, ByteIterator>> result) {
     final List<HashMap<String, ByteIterator>> data = new ArrayList<HashMap<String, ByteIterator>>(recordcount);
     bucket.async()
         .query(N1qlQuery.parameterized(
-          scanAllQuery,
-          JsonArray.from(formatId(table, startkey), recordcount),
-          N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
+            scanAllQuery,
+            JsonArray.from(formatId(table, startkey), recordcount),
+            N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
         ))
         .doOnNext(new Action1<AsyncN1qlQueryResult>() {
           @Override
@@ -1608,7 +1606,7 @@ public class Couchbase2Client extends DB {
             if (!result.parseSuccess()) {
 
               throw new RuntimeException("Error while parsing N1QL Result. Query: " + scanAllQuery
-                + ", Errors: " + result.errors());
+                  + ", Errors: " + result.errors());
             }
           }
         })
@@ -1622,7 +1620,7 @@ public class Couchbase2Client extends DB {
           @Override
           public Observable<RawJsonDocument> call(AsyncN1qlQueryRow row) {
             String id = new String(row.byteValue()).trim();
-            return bucket.async().get(id.substring(1, id.length()-1), RawJsonDocument.class);
+            return bucket.async().get(id.substring(1, id.length() - 1), RawJsonDocument.class);
           }
         })
         .map(new Func1<RawJsonDocument, HashMap<String, ByteIterator>>() {
@@ -1648,15 +1646,15 @@ public class Couchbase2Client extends DB {
   /**
    * Performs the {@link #scan(String, String, int, Set, Vector)} operation N1Ql only for a subset of the fields.
    *
-   * @param table The name of the table
-   * @param startkey The record key of the first record to read.
+   * @param table       The name of the table
+   * @param startkey    The record key of the first record to read.
    * @param recordcount The number of records to read
-   * @param fields The list of fields to read, or null for all of them
-   * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+   * @param fields      The list of fields to read, or null for all of them
+   * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
    * @return The result of the operation.
    */
   private Status scanSpecificFields(final String table, final String startkey, final int recordcount,
-      final Set<String> fields, final Vector<HashMap<String, ByteIterator>> result) {
+                                    final Set<String> fields, final Vector<HashMap<String, ByteIterator>> result) {
     String scanSpecQuery = "SELECT " + joinFields(fields) + " FROM `" + bucketName
         + "` WHERE meta().id >= $1 LIMIT $2";
     N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(
@@ -1667,7 +1665,7 @@ public class Couchbase2Client extends DB {
 
     if (!queryResult.parseSuccess() || !queryResult.finalSuccess()) {
       throw new RuntimeException("Error while parsing N1QL Result. Query: " + scanSpecQuery
-        + ", Errors: " + queryResult.errors());
+          + ", Errors: " + queryResult.errors());
     }
 
     boolean allFields = fields == null || fields.isEmpty();
@@ -1690,7 +1688,7 @@ public class Couchbase2Client extends DB {
 
   /**
    * Helper method to block on the response, depending on the property set.
-   *
+   * <p>
    * By default, since YCSB is sync the code will always wait for the operation to complete. In some
    * cases it can be useful to just "drive load" and disable the waiting. Note that when the
    * "-p couchbase.syncMutationResponse=false" option is used, the measured results by YCSB can basically
@@ -1700,7 +1698,7 @@ public class Couchbase2Client extends DB {
    */
   private void waitForMutationResponse(final Observable<? extends Document<?>> input) {
     if (!syncMutResponse) {
-      ((Observable<Document<?>>)input).subscribe(new Subscriber<Document<?>>() {
+      ((Observable<Document<?>>) input).subscribe(new Subscriber<Document<?>>() {
         @Override
         public void onCompleted() {
         }
@@ -1775,7 +1773,7 @@ public class Couchbase2Client extends DB {
    * Helper method to turn the prefix and key into a proper document ID.
    *
    * @param prefix the prefix (table).
-   * @param key the key itself.
+   * @param key    the key itself.
    * @return a document ID that can be used with Couchbase.
    */
   private static String formatId(final String prefix, final String key) {
@@ -1792,16 +1790,16 @@ public class Couchbase2Client extends DB {
     int value = Integer.parseInt(property);
 
     switch (value) {
-    case 0:
-      return ReplicateTo.NONE;
-    case 1:
-      return ReplicateTo.ONE;
-    case 2:
-      return ReplicateTo.TWO;
-    case 3:
-      return ReplicateTo.THREE;
-    default:
-      throw new DBException("\"couchbase.replicateTo\" must be between 0 and 3");
+      case 0:
+        return ReplicateTo.NONE;
+      case 1:
+        return ReplicateTo.ONE;
+      case 2:
+        return ReplicateTo.TWO;
+      case 3:
+        return ReplicateTo.THREE;
+      default:
+        throw new DBException("\"couchbase.replicateTo\" must be between 0 and 3");
     }
   }
 
@@ -1815,18 +1813,18 @@ public class Couchbase2Client extends DB {
     int value = Integer.parseInt(property);
 
     switch (value) {
-    case 0:
-      return PersistTo.NONE;
-    case 1:
-      return PersistTo.ONE;
-    case 2:
-      return PersistTo.TWO;
-    case 3:
-      return PersistTo.THREE;
-    case 4:
-      return PersistTo.FOUR;
-    default:
-      throw new DBException("\"couchbase.persistTo\" must be between 0 and 4");
+      case 0:
+        return PersistTo.NONE;
+      case 1:
+        return PersistTo.ONE;
+      case 2:
+        return PersistTo.TWO;
+      case 3:
+        return PersistTo.THREE;
+      case 4:
+        return PersistTo.FOUR;
+      default:
+        throw new DBException("\"couchbase.persistTo\" must be between 0 and 4");
     }
   }
 
@@ -1835,14 +1833,14 @@ public class Couchbase2Client extends DB {
    *
    * @param source the loaded object.
    * @param fields the fields to check.
-   * @param dest the result passed back to YCSB.
+   * @param dest   the result passed back to YCSB.
    */
   private void decode(final String source, final Set<String> fields,
                       final HashMap<String, ByteIterator> dest) {
     try {
       JsonNode json = JacksonTransformers.MAPPER.readTree(source);
       boolean checkFields = fields != null && !fields.isEmpty();
-      for (Iterator<Map.Entry<String, JsonNode>> jsonFields = json.fields(); jsonFields.hasNext();) {
+      for (Iterator<Map.Entry<String, JsonNode>> jsonFields = json.fields(); jsonFields.hasNext(); ) {
         Map.Entry<String, JsonNode> jsonField = jsonFields.next();
         String name = jsonField.getKey();
         if (checkFields && !fields.contains(name)) {
@@ -1883,6 +1881,7 @@ public class Couchbase2Client extends DB {
 
   /**
    * handling rich JSON types by converting Json arrays and Json objects into String.
+   *
    * @param source
    * @param fields
    * @param dest
@@ -1892,7 +1891,7 @@ public class Couchbase2Client extends DB {
     try {
       JsonNode json = JacksonTransformers.MAPPER.readTree(source);
       boolean checkFields = fields != null && !fields.isEmpty();
-      for (Iterator<Map.Entry<String, JsonNode>> jsonFields = json.fields(); jsonFields.hasNext();) {
+      for (Iterator<Map.Entry<String, JsonNode>> jsonFields = json.fields(); jsonFields.hasNext(); ) {
         Map.Entry<String, JsonNode> jsonField = jsonFields.next();
         String name = jsonField.getKey();
         if (checkFields && !fields.contains(name)) {

@@ -1,12 +1,12 @@
 /**
  * Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -46,6 +46,7 @@ import com.mongodb.util.JSON;
 
 import com.yahoo.ycsb.generator.soe.Generator;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bson.types.Binary;
 
 
@@ -59,7 +60,7 @@ import java.text.SimpleDateFormat;
  * <p>
  * See the <code>README.md</code> for configuration information.
  * </p>
- * 
+ *
  * @author ypai
  * @see <a href="http://docs.mongodb.org/ecosystem/drivers/java/">MongoDB Inc.
  *      driver</a>
@@ -157,7 +158,7 @@ public class MongoDbClient extends DB {
 
       generator.putCustomerDocument(key, queryResult.toJson());
       List<String> orders = (List<String>) queryResult.get(Generator.SOE_FIELD_CUSTOMER_ORDER_LIST);
-      for (String order:orders) {
+      for (String order : orders) {
         query = new Document("_id", order);
         findIterable = collection.find(query);
         queryResult = findIterable.first();
@@ -177,7 +178,7 @@ public class MongoDbClient extends DB {
   // *********************  SOE Insert ********************************
 
   @Override
-  public Status soeInsert(String table, HashMap<String, ByteIterator> result, Generator gen)  {
+  public Status soeInsert(String table, HashMap<String, ByteIterator> result, Generator gen) {
 
     try {
       MongoCollection<Document> collection = database.getCollection(table);
@@ -197,7 +198,6 @@ public class MongoDbClient extends DB {
     }
 
   }
-
 
 
   // *********************  SOE Update ********************************
@@ -387,7 +387,7 @@ public class MongoDbClient extends DB {
           new BasicDBObject("$gte", new SimpleDateFormat("yyyy-MM-dd").parse(dobyearValue + "-1-1"));
       DBObject clause3 = new BasicDBObject(dobyearName, clause3Range);
       DBObject clause4Range =
-          new BasicDBObject("$lte", new SimpleDateFormat("yyyy-MM-dd").parse(dobyearValue+ "-12-31"));
+          new BasicDBObject("$lte", new SimpleDateFormat("yyyy-MM-dd").parse(dobyearValue + "-12-31"));
       DBObject clause4 = new BasicDBObject(dobyearName, clause4Range);
 
       BasicDBList and = new BasicDBList();
@@ -441,7 +441,7 @@ public class MongoDbClient extends DB {
   @Override
   public Status soeNestScan(String table, final Vector<HashMap<String, ByteIterator>> result, Generator gen) {
     int recordcount = gen.getRandomLimit();
-    String nestedZipName =  gen.getPredicate().getName() + "." + gen.getPredicate().getNestedPredicateA().getName() +
+    String nestedZipName = gen.getPredicate().getName() + "." + gen.getPredicate().getNestedPredicateA().getName() +
         "." + gen.getPredicate().getNestedPredicateA().getNestedPredicateA().getName();
     String nestedZipValue = gen.getPredicate().getNestedPredicateA().getNestedPredicateA().getValueA();
 
@@ -492,7 +492,7 @@ public class MongoDbClient extends DB {
   @Override
   public Status soeArrayScan(String table, final Vector<HashMap<String, ByteIterator>> result, Generator gen) {
     int recordcount = gen.getRandomLimit();
-    String arrName =  gen.getPredicate().getName();
+    String arrName = gen.getPredicate().getName();
     String arrValue = gen.getPredicate().getValueA();
     Document sort = new Document("_id", INCLUDE);
 
@@ -500,7 +500,7 @@ public class MongoDbClient extends DB {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
 
-      BasicDBObject   query = new BasicDBObject();
+      BasicDBObject query = new BasicDBObject();
       query.put(arrName, arrValue);
 
       FindIterable<Document> findIterable = collection.find(query).sort(sort).limit(recordcount);
@@ -539,7 +539,7 @@ public class MongoDbClient extends DB {
   @Override
   public Status soeArrayDeepScan(String table, final Vector<HashMap<String, ByteIterator>> result, Generator gen) {
     int recordcount = gen.getRandomLimit();
-    String fieldName =  gen.getPredicate().getName();
+    String fieldName = gen.getPredicate().getName();
     String fieldCountryName = gen.getPredicate().getNestedPredicateA().getName();
     String fieldCitiesName = gen.getPredicate().getNestedPredicateB().getName();
     String fieldCountryValue = gen.getPredicate().getNestedPredicateA().getValueA();
@@ -551,11 +551,17 @@ public class MongoDbClient extends DB {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
 
-      BasicDBObject   query = new BasicDBObject();
-      query.put(fieldName + "." + fieldCountryName, fieldCountryValue);
-      query.put(fieldName + "." + fieldCitiesName, fieldCitiesValue);
+      final DBObject query = QueryBuilder.start()
+          .put(fieldName)
+          .elemMatch(QueryBuilder.start()
+              .put(fieldCountryName)
+              .is(fieldCountryValue)
+              .put(fieldCitiesName)
+              .is(fieldCitiesValue)
+              .get())
+          .get();
 
-      FindIterable<Document> findIterable = collection.find(query).sort(sort);
+      FindIterable<Document> findIterable = collection.find((Bson) query).sort(sort);
       Document projection = new Document();
       for (String field : gen.getAllFields()) {
         projection.put(field, INCLUDE);
@@ -569,7 +575,7 @@ public class MongoDbClient extends DB {
 
       while (cursor.hasNext()) {
         HashMap<String, ByteIterator> resultMap =
-            new HashMap<String, ByteIterator>();
+            new HashMap<>();
 
         Document obj = cursor.next();
         soeFillMap(resultMap, obj);
@@ -577,7 +583,7 @@ public class MongoDbClient extends DB {
       }
       return Status.OK;
     } catch (Exception e) {
-      System.err.println(e.toString());
+      System.err.println(e);
       return Status.ERROR;
     } finally {
       if (cursor != null) {
@@ -585,7 +591,6 @@ public class MongoDbClient extends DB {
       }
     }
   }
-
 
 
   // *********************  SOE Report ********************************
@@ -619,7 +624,7 @@ public class MongoDbClient extends DB {
         HashMap<String, ByteIterator> resultMap = new HashMap<String, ByteIterator>();
         Document obj = cursor.next();
         if (obj.get(orderListName) != null) {
-          BasicDBObject subq  = new BasicDBObject();
+          BasicDBObject subq = new BasicDBObject();
           subq.put("_id", new BasicDBObject("$in", obj.get(orderListName)));
           FindIterable<Document> findSubIterable = collection.find(subq);
           Document orderDoc = findSubIterable.first();
@@ -647,11 +652,11 @@ public class MongoDbClient extends DB {
 
     String nameOrderMonth = gen.getPredicatesSequence().get(0).getName();
     String nameOrderSaleprice = gen.getPredicatesSequence().get(1).getName();
-    String nameAddress =  gen.getPredicatesSequence().get(2).getName();
-    String nameAddressZip =  nameAddress + "." + gen.getPredicatesSequence().get(2).getNestedPredicateA().getName();
+    String nameAddress = gen.getPredicatesSequence().get(2).getName();
+    String nameAddressZip = nameAddress + "." + gen.getPredicatesSequence().get(2).getNestedPredicateA().getName();
     String nameOrderlist = gen.getPredicatesSequence().get(3).getName();
     String valueOrderMonth = gen.getPredicatesSequence().get(0).getValueA();
-    String valueAddressZip =  gen.getPredicatesSequence().get(2).getNestedPredicateA().getValueA();
+    String valueAddressZip = gen.getPredicatesSequence().get(2).getNestedPredicateA().getValueA();
 
     MongoCursor<Document> cursor = null;
     try {
@@ -673,7 +678,7 @@ public class MongoDbClient extends DB {
       while (cursor.hasNext()) {
         Document obj = cursor.next();
         if (obj.get(nameOrderlist) != null) {
-          BasicDBObject subq  = new BasicDBObject();
+          BasicDBObject subq = new BasicDBObject();
           subq.put("_id", new BasicDBObject("$in", obj.get(nameOrderlist)));
           subq.put(nameOrderMonth, valueOrderMonth);
 
@@ -716,7 +721,7 @@ public class MongoDbClient extends DB {
 
   /**
    * Delete a record from the database.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -821,7 +826,7 @@ public class MongoDbClient extends DB {
    * Insert a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -833,7 +838,7 @@ public class MongoDbClient extends DB {
    */
   @Override
   public Status insert(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       HashMap<String, ByteIterator> values) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
       Document toInsert = new Document("_id", key);
@@ -855,7 +860,7 @@ public class MongoDbClient extends DB {
         bulkInserts.add(toInsert);
         if (bulkInserts.size() == batchSize) {
           if (useUpsert) {
-            List<UpdateOneModel<Document>> updates = 
+            List<UpdateOneModel<Document>> updates =
                 new ArrayList<UpdateOneModel<Document>>(bulkInserts.size());
             for (Document doc : bulkInserts) {
               updates.add(new UpdateOneModel<Document>(
@@ -884,7 +889,7 @@ public class MongoDbClient extends DB {
   /**
    * Read a record from the database. Each field/value pair from the result will
    * be stored in a HashMap.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -897,7 +902,7 @@ public class MongoDbClient extends DB {
    */
   @Override
   public Status read(String table, String key, Set<String> fields,
-      HashMap<String, ByteIterator> result) {
+                     HashMap<String, ByteIterator> result) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
       Document query = new Document("_id", key);
@@ -928,7 +933,7 @@ public class MongoDbClient extends DB {
   /**
    * Perform a range scan for a set of records in the database. Each field/value
    * pair from the result will be stored in a HashMap.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param startkey
@@ -945,7 +950,7 @@ public class MongoDbClient extends DB {
    */
   @Override
   public Status scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     MongoCursor<Document> cursor = null;
     try {
       MongoCollection<Document> collection = database.getCollection(table);
@@ -999,7 +1004,7 @@ public class MongoDbClient extends DB {
    * Update a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key, overwriting any existing values with the same field name.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -1011,7 +1016,7 @@ public class MongoDbClient extends DB {
    */
   @Override
   public Status update(String table, String key,
-      HashMap<String, ByteIterator> values) {
+                       HashMap<String, ByteIterator> values) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
 
@@ -1036,7 +1041,7 @@ public class MongoDbClient extends DB {
 
   /**
    * Fills the map with the values from the DBObject.
-   * 
+   *
    * @param resultMap
    *          The map to fill/
    * @param obj
