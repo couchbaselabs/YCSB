@@ -102,6 +102,7 @@ public class Status {
       " success, but the result was not as expected.");
   public static final Status BAD_REQUEST = new Status("BAD_REQUEST", "The request was not valid.");
   public static final Status FORBIDDEN = new Status("FORBIDDEN", "The operation is forbidden.");
+  public static final Status CONCURRENT_UPDATE = new Status("CONCURRENT_UPDATE", "The operation has caused a concurrent update problem.");
   public static final Status SERVICE_UNAVAILABLE = new Status("SERVICE_UNAVAILABLE", "Dependant " +
       "service for the current binding is not available.");
   public static final Status BATCHED_OK = new Status("BATCHED_OK", "The operation has been batched by " +

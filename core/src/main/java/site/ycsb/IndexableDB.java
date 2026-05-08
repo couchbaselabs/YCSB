@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-204 benchANT GmbH. All rights reserved.
+ * Copyright (c) 2023-2024 benchANT GmbH. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -16,9 +16,11 @@
  */
 package site.ycsb;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import site.ycsb.wrappers.Comparison;
 import site.ycsb.wrappers.DatabaseField;
@@ -31,4 +33,5 @@ public interface IndexableDB {
   public Status findOne(String table, List<Comparison> filters,
     Set<String> fields, Map<String, ByteIterator> result);
   public Status updateOne(String table, List<Comparison> filters, List<DatabaseField> fields);
+  public Status aggregate(String table, String[] airports, int minOccurrences, Vector<HashMap<String, ByteIterator>> results);
 }

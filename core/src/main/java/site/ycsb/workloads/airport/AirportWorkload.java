@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-204 benchANT GmbH. All rights reserved.
+ * Copyright (c) 2023-2026 benchANT GmbH. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
+import java.util.Vector;
 
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
@@ -65,6 +66,10 @@ import site.ycsb.wrappers.Wrappers;
   public static final String FINDONE_PROPORTION_PROPERTY = "findoneproportion";
 
   /**
+   * The name of the property for the proportion of transactions that are aggregates.
+   */
+  public static final String AGGREGATE_PROPORTION_PROPERTY = "aggregateproportion";
+  /**
    * The default proportion of transactions that are deletes.
    */
   public static final String FINDONE_PROPORTION_PROPERTY_DEFAULT = "0.70";
@@ -81,6 +86,9 @@ import site.ycsb.wrappers.Wrappers;
    * The default proportion of transactions that are inserted.
    */
   public static final String INSERT_PROPORTION_PROPERTY_DEFAULT = "0.05";
+
+  public static final String AGGREGATE_MIN_OCCURRENCES_PROPERTY = "aggregate.minoccurrences";
+  public static final String AGGREGATE_MIN_OCCURRENCES_PROPERTY_DEFAULT = "100";
   /**
    * The default proportion of transactions that are reads.
   */
@@ -104,7 +112,9 @@ import site.ycsb.wrappers.Wrappers;
   protected DiscreteGenerator airlinechooser;
   protected UniformLongGenerator codeshareslengthgenerator;
   protected UniformLongGenerator stopsgenerator;
+  protected UniformLongGenerator occurrencesGenerator;
   protected boolean useNestedDataStructure;
+  protected int aggregateMinOccurrences;
 
   private void registerSchema() {
     if(useNestedDataStructure) {
@@ -151,6 +161,15 @@ import site.ycsb.wrappers.Wrappers;
       codeshareslengthgenerator = new UniformLongGenerator(0, 3);
       stopsgenerator = new UniformLongGenerator(0, 3);
       fieldnames = new ArrayList<String>(Arrays.asList(FIELD_NAMES));
+      aggregateMinOccurrences = Integer.parseInt(
+        p.getProperty(AGGREGATE_MIN_OCCURRENCES_PROPERTY, AGGREGATE_MIN_OCCURRENCES_PROPERTY_DEFAULT)
+      );
+      if(aggregateMinOccurrences < 0) {
+        throw new WorkloadException("invalid value for " + AGGREGATE_MIN_OCCURRENCES_PROPERTY + ": " + aggregateMinOccurrences);
+      } else {
+        System.out.println("Using min occurrences for aggregate queries: " + aggregateMinOccurrences);
+      }
+      occurrencesGenerator = new UniformLongGenerator(0 , aggregateMinOccurrences);
       useNestedDataStructure = Boolean.parseBoolean(
         p.getProperty(NESTED_DATA_STRUCTURE_KEY, NESTED_DATA_STRUCTURE_DEFAULT)
       );
@@ -259,6 +278,17 @@ import site.ycsb.wrappers.Wrappers;
     db.findOne(table, values, null, cells);
   }
 
+  public void doTransactionAggregate(IndexableDB db) {
+    String[] airports = new String[3];
+    for(int i = 0; i < 3; i++) {
+      airports[i] = airportchooser.nextString();
+    }
+    int minOccurrences = occurrencesGenerator.nextValue().intValue();
+    Vector<HashMap<String, ByteIterator>> results = new Vector<HashMap<String, ByteIterator>>();
+    // TODO implement aggregation query
+    db.aggregate(table, airports, minOccurrences, results);
+  }
+
   /**
    * Do one transaction operation. Because it will be called concurrently from multiple client
    * threads, this function must be thread safe. However, avoid synchronized, or the threads will block waiting
@@ -295,9 +325,18 @@ import site.ycsb.wrappers.Wrappers;
       // Update: filter by airline.alias and update field1 with random string
       doTransactionUpdate(db);
       break;
+    case "READ":
+      // probably more a readmodifywrite
+      // Update: filter by airline.alias and update field1 with random string
+      doTransactionRead(db);
+      break;
+    case "AGGREGATE":
+      // execute a certain aggregation query
+      doTransactionAggregate((IndexableDB) db);
+      break;
     default:
       // dont!
-      // doTransactionReadModifyWrite(db);
+      throw new UnsupportedOperationException("unknown operation " + operation);
     }
 
     return true;
@@ -326,6 +365,8 @@ import site.ycsb.wrappers.Wrappers;
         p.getProperty(CoreConstants.INSERT_PROPORTION_PROPERTY, "0"));
     final double deleteproportion = Double.parseDouble(
         p.getProperty(DELETE_PROPORTION_PROPERTY, "0"));
+    final double aggregateproportion = Double.parseDouble(
+        p.getProperty(AGGREGATE_PROPORTION_PROPERTY, "0"));
     /*final double readmodifywriteproportion = Double.parseDouble(p.getProperty(
         READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
     */
@@ -344,6 +385,9 @@ import site.ycsb.wrappers.Wrappers;
     }
     if (deleteproportion > 0) {
       operationchooser.addValue(deleteproportion, "DELETE");
+    }
+    if (aggregateproportion > 0) {
+      operationchooser.addValue(aggregateproportion, "AGGREGATE");
     }
     /*
     if (readmodifywriteproportion > 0) {

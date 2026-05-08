@@ -536,7 +536,11 @@ public class CoreWorkload extends Workload {
       fields.add(fieldname);
     }
 
-    db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
+    Vector<HashMap<String, ByteIterator>> scannedRecords = new Vector<HashMap<String, ByteIterator>>();
+    long st = System.nanoTime();
+    db.scan(table, startkeyname, len, fields, scannedRecords);
+    long en = System.nanoTime();
+    measurements.measure("SCAN-LATENCY-PER-RECORD", (int) ((en - st) / 1000 / scannedRecords.size()));
   }
 
   public void doTransactionUpdate(DB db) {

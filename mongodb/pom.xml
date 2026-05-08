@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
 Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
-Copyright (c) 2023 - 2024 benchANT GmbH. All rights reserved.
+Copyright (c) 2023 - 2026 benchANT GmbH. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You
@@ -31,12 +31,18 @@ LICENSE file.
   <name>MongoDB Binding</name>
   <packaging>jar</packaging>
 
+  <!-- <dependencyManagement>
+      <dependencies>
+          <dependency>
+              <groupId>org.mongodb</groupId>
+              <artifactId>mongodb-driver-bom</artifactId>
+              <version>${mongodb.version}</version>
+              <type>pom</type>
+              <scope>import</scope>
+          </dependency>
+      </dependencies>
+  </dependencyManagement> -->
   <dependencies>
-    <!-- <dependency>
-      <groupId>org.mongodb</groupId>
-      <artifactId>mongodb-driver-legacy</artifactId>
-      <version>${mongodb.version}</version>
-    </dependency> -->
     <dependency>
       <groupId>org.mongodb</groupId>
       <artifactId>mongodb-driver-sync</artifactId>
@@ -51,7 +57,7 @@ LICENSE file.
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.1.2</version>
+      <version>1.3.15</version>
       <scope>runtime</scope>
     </dependency>
 
@@ -69,7 +75,7 @@ LICENSE file.
       <scope>compile</scope>
     </dependency>
   </dependencies>
-  <repositories>
+<!--  <repositories>
     <repository>
       <releases>
         <enabled>true</enabled>
@@ -83,9 +89,9 @@ LICENSE file.
       </snapshots>
       <id>allanbank</id>
       <name>Allanbank Releases</name>
-      <!-- Does not support HTTPS -->
+      <!- - Does not support HTTPS - ->
       <url>http://www.allanbank.com/repo/</url>
       <layout>default</layout>
     </repository>
-  </repositories>
+  </repositories>-->
 </project>

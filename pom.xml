@@ -115,18 +115,23 @@ LICENSE file.
     <aerospike.version>7.2.0</aerospike.version>
     <arangodb.version>4.4.1</arangodb.version>
     <asynchbase.version>1.8.2</asynchbase.version>
-    <azurecosmos.version>4.8.0</azurecosmos.version>
+    <azurecosmos.version>4.26.0</azurecosmos.version>
+    <azure.bom.version>1.3.4</azure.bom.version>
     <azurestorage.version>4.0.0</azurestorage.version>
+    <bigquery.version>2.57.1</bigquery.version>
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
     <cloudspanner.version>2.0.1</cloudspanner.version>
     <couchbase.version>1.4.10</couchbase.version>
 		<couchbase2.version>2.3.1</couchbase2.version>
-    <couchbase3.version>3.5.0</couchbase3.version>
+    <couchbase3.version>3.10.1</couchbase3.version>
 		<crail.version>1.1-incubating</crail.version>
     <elasticsearch5-version>5.5.1</elasticsearch5-version>
     <foundationdb.version>5.2.5</foundationdb.version>
     <geode.version>1.2.0</geode.version>
+    <!-- deprecated, please use googlebigtable2 -->
     <googlebigtable.version>1.4.0</googlebigtable.version>
+    <googlebigtable2.version>2.47.0</googlebigtable2.version>
+    <googlefirestore.version>3.31.9</googlefirestore.version>
     <griddb.version>4.0.0</griddb.version>
     <hbase1.version>1.4.12</hbase1.version>
     <hbase2.version>2.2.3</hbase2.version>
@@ -165,32 +170,35 @@ LICENSE file.
 <!--    <module>accumulo1.9</module>
     <module>aerospike</module>
     <module>arangodb</module>
-    <module>asynchbase</module>
+    <module>asynchbase</module>-->
     <module>azurecosmos</module>
-    <module>azuretablestorage</module>
-    <module>cassandra</module>
+    <!-- <module>azuretablestorage</module>-->
+    <module>bigquery</module>
+    <!-- <module>cassandra</module>
     <module>cloudspanner</module>
     <module>couchbase</module>
 		<module>couchbase2</module> -->
     <module>couchbase3</module>
 <!-- <module>crail</module> -->
     <module>dynamodb</module>
-    <!--    <module>elasticsearch</module>
+    <!-- <module>elasticsearch</module>
     <module>elasticsearch5</module>
     <module>foundationdb</module>
     <module>geode</module>
     <module>googlebigtable</module>
-    <module>googledatastore</module>
-    <module>griddb</module>
+    <module>googledatastore</module>-->
+    <module>googlebigtable2</module>
+    <module>googlefirestore</module>
+    <!-- <module>griddb</module>
     <module>hbase1</module>
     <module>hbase2</module>
     <module>ignite</module>
-    <module>infinispan</module>-->
-    <module>jdbc</module>
+    <module>infinispan</module>
+    <module>jdbc</module>-->
 <!--    <module>kudu</module>
     <module>maprdb</module>
     <module>maprjsondb</module>
-    <module>memcached</module> -->
+    <module>memcached</module>  -->
     <module>mongodb</module>
 <!--    <module>nosqldb</module>
     <module>orientdb</module>
@@ -201,9 +209,9 @@ LICENSE file.
     <module>riak</module>
     <module>rocksdb</module>
     <module>s3</module>
-    <module>seaweedfs</module>-->
+    <module>seaweedfs</module>
     <module>scylla</module>
-<!--    <module>solr7</module>
+    <module>solr7</module>
     <module>tarantool</module>
     <module>tablestore</module>
     <module>voltdb</module>

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 benchANT GmbH. All Rights Reserved.
+ * Copyright 2023-2026 benchANT GmbH. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -14,77 +14,87 @@
  */
 package site.ycsb.db;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import com.amazonaws.services.dynamodbv2.document.spec.QuerySpec;
-import com.amazonaws.services.dynamodbv2.document.utils.ValueMap;
-
+import site.ycsb.db.DynamoDBClient.IndexDescriptor;
 import site.ycsb.wrappers.Comparison;
 import site.ycsb.wrappers.ComparisonOperator;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
 
 public final class DynamoDBQueryHelper {
     
-    private static void bindQueryString(ValueMap m, Comparison c) {
+    private static void bindQueryString(Map<String, AttributeValue> m, Comparison c) {
         Comparison d = c;
         String fieldName = c.getFieldname();
         while(d.isSimpleNesting()) {
             d = d.getSimpleNesting();
-            fieldName = fieldName + "." + d.getFieldname();
+            fieldName = fieldName + "_" + d.getFieldname();
         }
         if(d.comparesInts()) {
-            m.withInt(":v_"+ fieldName, d.getOperandAsInt());
+            m.put(":v_"+ fieldName, AttributeValue.builder().n(Integer.toString(d.getOperandAsInt())).build());
         } else if(d.comparesStrings()) {
-            m.withString(":v_"+ fieldName, d.getOperandAsString());
+            m.put(":v_"+ fieldName, AttributeValue.builder().s(d.getOperandAsString()).build());
         } else {
             throw new IllegalArgumentException("unknown: " + c);
         }
     }
 
-    private static String buildQueryString(Comparison c) {
-        Comparison d = c;
-        String fieldName = c.getFieldname();
-        while(d.isSimpleNesting()) {
-            d = d.getSimpleNesting();
-            fieldName = fieldName + "." + d.getFieldname();
+    private static String buildQueryString(String fieldName, Comparison d) {
+        if(d.isSimpleNesting()) {
+            throw new IllegalStateException("no nesting expected here");
         }
+        String placeholderName = fieldName.replaceAll("\\.", "_");
         if(d.comparesInts()) {
             ComparisonOperator co = d.getOperator();
             if(co == ComparisonOperator.INT_LTE) {
-                return fieldName + " <= " + ":v_"+ fieldName;
+                return fieldName + " <= " + ":v_"+ placeholderName;
             } else {
                 throw new IllegalArgumentException("unknown: " + co);
             }
         } else if(d.comparesStrings()) {
             ComparisonOperator co = d.getOperator();
             if(co == ComparisonOperator.STRING_EQUAL) {
-                return fieldName + " = " + ":v_"+ fieldName;
+                return fieldName + " = " + ":v_"+ placeholderName;
             } else {
                 throw new IllegalArgumentException("unknown: " + co);
             }
         } else {
-                throw new IllegalArgumentException("unknown: " + c);
+                throw new IllegalArgumentException("unknown: " + d);
         }
     }
 
-    static void bindPreparedQuery(QuerySpec query, List<Comparison> filters) {
-        ValueMap m = new ValueMap();
+    static void bindPreparedQuery(QueryRequest.Builder query, List<Comparison> filters) {
+        Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
         for(Comparison c : filters) {
-            bindQueryString(m, c);
+            bindQueryString(expressionAttributeValues, c);
         }
-        query.withValueMap(m);
+        query.expressionAttributeValues(expressionAttributeValues);
     }
 
-    static void buildPreparedQuery(QuerySpec query, String indexField, List<Comparison> filters) {
-        query.withMaxResultSize(1);
-        for(Comparison c : filters) {
-            if(indexField.equals(c.getFieldname())) {
-                query.withKeyConditionExpression(buildQueryString(c));
-            } else {
-                String f = query.getFilterExpression();
-                String g = buildQueryString(c);
-                String h = f == null ? g : f + " AND " + g;
-                query.withFilterExpression(h);
+    static void buildPreparedQuery(QueryRequest.Builder query, IndexDescriptor idx, List<Comparison> filters) {
+        String filterExpression = null;
+        String keyCondExpression = null;
+        for(Comparison d : filters) {
+            Comparison c = d;
+            String fieldName = c.getFieldname();
+            while(c.isSimpleNesting()) {
+                c = c.getSimpleNesting();
+                fieldName = fieldName + "." + c.getFieldname();
             }
+            if(idx.hashKeyAttributes.contains(fieldName) || idx.sortsKeyAttributes.contains(fieldName)) {
+                String g = buildQueryString(fieldName, c);
+                keyCondExpression = keyCondExpression == null ? g : keyCondExpression + " AND " + g;
+            } else {
+                String g = buildQueryString(fieldName, c);
+                filterExpression = filterExpression == null ? g : filterExpression + " AND " + g;
+            }
+        }
+        query.keyConditionExpression(keyCondExpression);
+        if(filterExpression != null) {
+            query.filterExpression(filterExpression);
         }
     }
 

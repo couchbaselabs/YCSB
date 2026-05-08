@@ -76,4 +76,11 @@ public class NumericByteIterator extends ByteIterator {
     return floatingPoint;
   }
 
+  public String toString() {
+    if (floatingPoint) {
+      return Double.toString(getDouble());
+    } else {
+      return Long.toString(getLong());
+    }
+  }
 }

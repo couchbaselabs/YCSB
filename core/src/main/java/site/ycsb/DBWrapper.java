@@ -263,12 +263,14 @@ public class DBWrapper extends DB {
 final class IndexableDbWrapper extends DBWrapper implements IndexableDB {
   private final String scopeStringFindOne;
   private final String scopeStringUpdateOne;
+  private final String scopeStringAggregate;
 
   IndexableDbWrapper(final DB db, final Tracer tracer) {
     super(db, tracer);
     final String simple = db.getClass().getSimpleName();
     scopeStringFindOne = simple + "#findone";
     scopeStringUpdateOne = simple + "#updateone";
+    scopeStringAggregate = simple + "#aggregate";
   }
   @Override
   public Status findOne(String table, List<Comparison> filters, Set<String> fields, Map<String, ByteIterator> result) {
@@ -291,6 +293,19 @@ final class IndexableDbWrapper extends DBWrapper implements IndexableDB {
       long en = System.nanoTime();
       measure("UPDATEONE", res, ist, st, en);
       measurements.reportStatus("UPDATEONE", res);
+      return res;
+    }
+  }
+
+  @Override
+  public Status aggregate(String table, String[] airports, int minOccurrences, Vector<HashMap<String, ByteIterator>> results){
+    try (final TraceScope span = tracer.newScope(scopeStringAggregate)) {
+      long ist = measurements.getIntendedStartTimeNs();
+      long st = System.nanoTime();
+      Status res = ((IndexableDB) db).aggregate(table, airports, minOccurrences, results);
+      long en = System.nanoTime();
+      measure("AGGREGATE", res, ist, st, en);
+      measurements.reportStatus("AGGREGATE", res);
       return res;
     }
   }

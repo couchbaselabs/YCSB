@@ -451,6 +451,17 @@ public class BasicDB extends DB implements IndexableDB {
     
     return Status.OK;
   }
+
+  public Status aggregate(String table, String[] airports, int minOccurrences, Vector<HashMap<String, ByteIterator>> results){
+    delay();
+    if (verbose) {
+      StringBuilder sb = getStringBuilder();
+      sb.append("AGGREGATE ").append(table).append(" ").append(airports)
+        .append(" minOccurrences: ").append(minOccurrences);
+      System.out.println(sb);
+    }
+    return Status.OK;
+  }
   /**
    * Short test of BasicDB
    */

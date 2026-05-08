@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
- * Copyright (c) 2023 - 2024 benchANT GmbH. All rights reserved.
+ * Copyright (c) 2023 - 2026 benchANT GmbH. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -41,7 +41,12 @@ import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.DeleteResult;
-import com.mongodb.client.result.UpdateResult;
+import com.mongodb.client.result.UpdateResult;  
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Aggregates.*;
+import static com.mongodb.client.model.Accumulators.*;
+import static com.mongodb.client.model.Projections.*;
+
 
 import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
@@ -129,6 +134,8 @@ public class MongoDbClient extends DB implements IndexableDB {
 
   private static boolean useTypedFields;
   private static boolean debug = false;
+
+  public static final int AGGREAGTE_QUERY_LIMIT = 10;
   /**
    * Cleanup any state for this DB. Called once per DB instance; there is one DB
    * instance per client thread.
@@ -622,6 +629,65 @@ public class MongoDbClient extends DB implements IndexableDB {
       return Status.ERROR;
     }
   }
+
+  @Override
+  public Status aggregate(String table, String[] airports, int minOccurrences, Vector<HashMap<String, ByteIterator>> results) {
+    /*
+    this is a sample implementation of an aggregate function, which is not
+    part of the standard YCSB API. It is specific to the Airport workload
+    and maps to the following SQL query:
+    ```
+    "SELECT src_airport, dst_airport, count(*) as nmb, avg(stops) as avg_stops FROM " + keyspaceName + " " +
+                " WHERE ARRAY_COUNT( codeshares ) > 0 " +
+                " AND (src_airport IN [ ?, ?, ? ] OR dst_airport IN [ ?, ?, ? ] ) " +
+                " GROUP BY src_airport, dst_airport " + 
+                " HAVING COUNT(*) > ? " + 
+                " ORDER BY avg_stops DESC LIMIT " + AGGREAGTE_QUERY_LIMIT;
+    ```
+    */
+   if(debug) {
+     System.out.println("Running aggregate query with airports " + String.join(", ", airports) + " and minOccurrences " + minOccurrences);
+   }
+    // implement aggregate query using MongoDB Pipeline API
+    try {
+      MongoCollection<Document> collection = database.getCollection(table);
+      List<Bson> pipeline = new ArrayList<>();
+      pipeline.add(match(and(
+        or(in("src_airport", airports), in("dst_airport", airports)), // in any of the two fields
+        and(exists("codeshares"), not(size("codeshares", 0)))
+      )));
+      pipeline.add(group(new Document("src_airport", "$src_airport").append("dst_airport", "$dst_airport"),
+         sum("nmb", 1), avg("avg_stops", "$stops")));
+      pipeline.add(match(gt("nmb", minOccurrences)));
+      pipeline.add(sort(new Document("avg_stops", -1)));
+      pipeline.add(limit(AGGREAGTE_QUERY_LIMIT));
+      // project _id.src_airport to src_airport and _id.dst_airport to dst_airport, 
+      // but keep nmb and avg_stops as they are, and remove _id
+      pipeline.add(project(fields(
+        computed("src_airport", "$_id.src_airport"),
+        computed("dst_airport", "$_id.dst_airport"),
+        include("nmb", "avg_stops"),
+        excludeId()
+      )));
+      for (Document doc : collection.aggregate(pipeline)) {
+        HashMap<String, ByteIterator> resultMap = new HashMap<String, ByteIterator>();
+        fillMap(resultMap, doc);
+        results.add(resultMap);
+      }
+      if(results.size() == 0) {
+        return Status.NOT_FOUND;
+      }
+      if(debug){
+        System.out.println("Found " + results.size() + " results: " + results);
+      }
+      return Status.OK;
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.err.println(e.toString());
+      return Status.ERROR;
+    }
+    
+  }
   /**
    * Fills the map with the values from the DBObject.
    * 
@@ -635,6 +701,11 @@ public class MongoDbClient extends DB implements IndexableDB {
       if (entry.getValue() instanceof Binary) {
         resultMap.put(entry.getKey(),
             new ByteArrayByteIterator(((Binary) entry.getValue()).getData()));
+      } else if(entry.getValue() == null) {
+        resultMap.put(entry.getKey(), null);
+      } else {
+        resultMap.put(entry.getKey(), new ByteArrayByteIterator(entry.getValue().toString().getBytes()));
+        // System.err.println("WARNING: cannot convert value of type " + entry.getValue().getClass() + " to byte array for field " + entry.getKey());
       }
     }
   }

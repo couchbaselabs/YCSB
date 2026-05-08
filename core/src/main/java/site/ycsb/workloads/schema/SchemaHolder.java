@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-204 benchANT GmbH. All rights reserved.
+ * Copyright (c) 2023-2026 benchANT GmbH. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -17,13 +17,14 @@
 package site.ycsb.workloads.schema;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public enum SchemaHolder {
     INSTANCE;
     private volatile List<SchemaColumn> theList;
     public List<SchemaColumn> getOrderedListOfColumns() {
-        return new ArrayList<>(theList);
+        return theList == null ? Collections.emptyList() : new ArrayList<>(theList);
     }
     public static SchemaBuilder schemaBuilder() {
         return new SchemaBuilder();
