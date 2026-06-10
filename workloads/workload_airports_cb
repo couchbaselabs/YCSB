@@ -1,0 +1,13 @@
+workload=site.ycsb.workloads.airport.AirportWorkload
+typedfields=true
+nesteddata=true
+requestdistribution=uniform
+# operation mix (AirportWorkload defaults: findone .70, update .20, insert .05, delete .05)
+findoneproportion=0.70
+aggregateproportion=0.00
+
+couchbase.scope=_default
+couchbase.collection=_default
+couchbase.username=Administrator
+# GSI definitions — copied couchbase.indexlist value from workloads/indexes/airport/default.2026
+couchbase.indexlist=[{ "isPrimary": true }, { "name":"airplane-index","fields":["airplane"] }, { "name":"codeshares-index","fields":["codeshares"] }, { "name":"airlinealias-index","fields":["airline.alias"] }, { "name":"composite-index","fields":["dst_airport","src_airport","stops"] }, { "name":"aggregation-index","fields":["array_count(`codeshares`)","src_airport","dst_airport","stops"] }]
