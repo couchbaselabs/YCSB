@@ -113,7 +113,7 @@ public class Couchbase3Client extends DB implements IndexableDB {
   private static PersistTo persistTo;
   private static ReplicateTo replicateTo;
   private DurabilityLevel durabilityLevel;
-  
+
   private final Map<String, Map<String,Object>> bulkInserts = new HashMap<String, Map<String,Object>>();
   private String keyspaceName;
   String bucketName;
@@ -174,7 +174,7 @@ public class Couchbase3Client extends DB implements IndexableDB {
       clusterOptions.environment(environment);
       if(debug) {
         System.err.println("Couchbase3Client: connecting ... ");
-      } 
+      }
       return Cluster.connect(hostname, clusterOptions);
   }
 
@@ -220,7 +220,7 @@ public class Couchbase3Client extends DB implements IndexableDB {
           System.err.println("problems creating collection " + collectionName + " in scope " + scopeName + ". Leaving.");
           System.exit(-4);
         } */
-        mng.createCollection(scopeName, collectionName, 
+        mng.createCollection(scopeName, collectionName,
           CreateCollectionSettings.createCollectionSettings(),
           CreateCollectionOptions.createCollectionOptions().timeout(null));
         System.err.println("Creating collection " + collectionName + " in scope " + scopeName);
@@ -274,7 +274,7 @@ public class Couchbase3Client extends DB implements IndexableDB {
 
   private Collection getCollectionForFollowupThread() {
     return collectionEnabled
-        ? bucket.scope(this.scopeName).collection(this.collectionName) 
+        ? bucket.scope(this.scopeName).collection(this.collectionName)
         : bucket.defaultCollection();
   }
 
@@ -287,8 +287,8 @@ public class Couchbase3Client extends DB implements IndexableDB {
     scopeName = props.getProperty("couchbase.scope", "_default");
     upsert = props.getProperty("couchbase.upsert", "false").equals("true");
     collectionName = props.getProperty("couchbase.collection", "_default");
-    scopeEnabled = scopeName != "_default";
-    collectionEnabled = collectionName != "_default";
+    scopeEnabled = !scopeName.equals("_default");
+    collectionEnabled = !collectionName.equals("_default");
     adhoc = props.getProperty("couchbase.adhoc", "false").equals("true");
     maxParallelism = Integer.parseInt(props.getProperty("couchbase.maxParallelism", "0"));
     keyspaceName = getKeyspaceName();
@@ -327,7 +327,7 @@ public class Couchbase3Client extends DB implements IndexableDB {
       bucket = cluster.bucket(bucketName);
       myCollection = initDatabaseStructure(props);
 
-      // boolean enableMutationToken = Boolean.parseBoolean(props.getProperty("couchbase.enableMutationToken", "false"));  
+      // boolean enableMutationToken = Boolean.parseBoolean(props.getProperty("couchbase.enableMutationToken", "false"));
 
       // kvEndpoints = Integer.parseInt(props.getProperty("couchbase.kvEndpoints", "1"));
         /*
@@ -445,7 +445,7 @@ public class Couchbase3Client extends DB implements IndexableDB {
       environment.shutdown();
       environment = null;
     }
-    /* 
+    /*
     System.err.println(Thread.currentThread().getName() + ": dumping errors");
     Iterator<Throwable> it = errors.iterator();
     while(it.hasNext()) {
@@ -653,7 +653,7 @@ public class Couchbase3Client extends DB implements IndexableDB {
     if(fields != null) {
       throw new UnsupportedOperationException("cannot read results by field");
     }
-    
+
     String query = Couchbase3QueryBuilder.buildFindOnePlaceholderQuery(keyspaceName, filters);
     JsonArray params = JsonArray.create();
     Couchbase3QueryBuilder.bindFindOneQuery(params, filters);
@@ -706,8 +706,8 @@ public class Couchbase3Client extends DB implements IndexableDB {
     }
     try {
       QueryOptions options = QueryOptions.queryOptions();
-      // QueryResult qResult = bucket.defaultScope().query(query, 
-      QueryResult qResult = cluster.query(query, 
+      // QueryResult qResult = bucket.defaultScope().query(query,
+      QueryResult qResult = cluster.query(query,
           options.adhoc(adhoc)
                 .parameters(params)
                 .readonly(true)
@@ -761,8 +761,8 @@ public class Couchbase3Client extends DB implements IndexableDB {
     }
     try {
       QueryOptions options = QueryOptions.queryOptions();
-      // QueryResult qResult = bucket.defaultScope().query(query, 
-      QueryResult qResult = cluster.query(query, 
+      // QueryResult qResult = bucket.defaultScope().query(query,
+      QueryResult qResult = cluster.query(query,
         options.adhoc(adhoc)
                 .parameters(params)
                 .readonly(false)
