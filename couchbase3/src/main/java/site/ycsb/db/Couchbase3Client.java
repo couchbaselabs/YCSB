@@ -460,9 +460,9 @@ public class Couchbase3Client extends DB implements IndexableDB {
    */
   private String getKeyspaceName() {
     if (scopeEnabled || collectionEnabled) {
-      return bucketName + KEYSPACE_SEPARATOR + this.scopeName + KEYSPACE_SEPARATOR + this.collectionName;
+      return "`" + bucketName + "`" + KEYSPACE_SEPARATOR + "`" + this.scopeName + "`" + KEYSPACE_SEPARATOR + "`" + this.collectionName + "`";
     } else {
-      return bucketName;
+      return "`" + bucketName + "`";
     }
   }
 
