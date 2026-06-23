@@ -9,6 +9,8 @@ aggregateproportion=0.00
 couchbase.scope=_default
 couchbase.collection=_default
 couchbase.username=Administrator
+operationcount=1000
+
 # Index definitions: indexlist values copied from workloads/indexes/airport/default.2026
 couchbase.indexlist=[{ "isPrimary": true }, { "name":"airplane-index","fields":["airplane"] }, { "name":"codeshares-index","fields":["codeshares"] }, { "name":"airlinealias-index","fields":["airline.alias"] }, { "name":"composite-index","fields":["dst_airport","src_airport","stops"] }, { "name":"aggregation-index","fields":["array_count(`codeshares`)","src_airport","dst_airport","stops"] }]
 mongodb.indexlist=[ { airplane: 1 }, { codeshares: 1 }, { "airline.alias" : 1 }, { src_airport: 1, dest_airport: 1, stops: 1 } ]
