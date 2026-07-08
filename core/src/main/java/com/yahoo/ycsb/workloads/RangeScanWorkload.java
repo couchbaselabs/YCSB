@@ -71,7 +71,7 @@ public class RangeScanWorkload extends CoreWorkload {
       }
 
       startkeyname = "usertable:" + startkeyname;
-      String endkeyname = "usertable:" + buildKeyName(endKeynum);
+      String endkeyname = "usertable:" + endName;
 
       db.rangescan(table, startkeyname, endkeyname, len, new Vector<HashMap<String, ByteIterator>>());
       return;
