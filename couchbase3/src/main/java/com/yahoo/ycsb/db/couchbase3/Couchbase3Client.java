@@ -1022,7 +1022,6 @@ public class Couchbase3Client extends DB {
       } else {
         final ScanTerm startTerm = ScanTerm.inclusive(startkey);
         final ScanTerm endTerm = ScanTerm.inclusive(endkey);
-        System.out.println("Starting range scan from " + startTerm + " to " + endTerm);
         if (ordered) {
           reactiveCollection.scan(ScanType.rangeScan(startTerm, endTerm))
             .take(recordcount)
@@ -1052,7 +1051,6 @@ public class Couchbase3Client extends DB {
       }
 
       result.addAll(data);
-      System.out.println("Range scan completed. Found " + data.size() + " records.");
       return Status.OK;
     } catch (Throwable t) {
       errors.add(t);
@@ -1161,7 +1159,6 @@ public class Couchbase3Client extends DB {
       }
 
       result.addAll(data);
-      System.out.println("Range scan completed. Found " + data.size() + " records.");
       return Status.OK;
     } catch (Throwable t) {
       errors.add(t);
