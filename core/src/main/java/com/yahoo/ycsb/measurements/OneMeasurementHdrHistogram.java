@@ -53,7 +53,7 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
   /**
    * The default value for the hdrhistogram.percentiles property.
    */
-  public static final String PERCENTILES_PROPERTY_DEFAULT = "95,99";
+  public static final String PERCENTILES_PROPERTY_DEFAULT = "25,50,60,75,85,95,99";
   
   /**
    * The name of the property for determining if we should print out the buckets.
@@ -135,7 +135,8 @@ public class OneMeasurementHdrHistogram extends OneMeasurement {
           value = (int)v.getValueIteratedTo();
         }
   
-        exporter.write(getName(), Integer.toString(value), (double)v.getCountAtValueIteratedTo());
+        String opName = getName() + "-HISTOGRAM";
+        exporter.write(opName, Integer.toString(value), (double)v.getCountAtValueIteratedTo());
       }
     }
   }
