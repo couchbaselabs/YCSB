@@ -1,0 +1,55 @@
+All of these actually run against the freshly built cbljava-binding-0.15.0.jar — I verified insert, read, both scan modes, and the preserve-db reopen live; the replicator one needs a running Sync Gateway so I didn't execute it, just built it from the properties in CBL_JAVA_TEST_PLAN.md.
+
+Since bin/ycsb here is still Python 2 and won't run on this machine, all examples invoke com.yahoo.ycsb.Client directly. One-time setup to build the jar + classpath:
+
+
+mvn -pl com.yahoo.ycsb:cbljava-binding -am package -DskipTests \
+  dependency:build-classpath -DincludeScope=compile \
+  -Dmdep.outputFilterFile=true -Dmdep.outputFile=cp.txt
+
+CP="cbljava/target/cbljava-binding-0.15.0.jar:$(sed 's/^classpath=//' cbljava/cp.txt)"
+
+Insert (load phase)
+java -cp "$CP" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.cbljava.CBLJavaClient \
+  -P workloads/workloada -p recordcount=2000 -p cbl.dbPath=/tmp/cbl_demo \
+  -threads 4 -load
+
+Read
+java -cp "$CP" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.cbljava.CBLJavaClient \
+  -P workloads/workloadc -p recordcount=2000 -p operationcount=2000 \
+  -p cbl.dbPath=/tmp/cbl_demo -threads 4 -t
+
+Upgrade (reopen an existing db without wiping it, emits [UPGRADE], OpenTime(ms), <n>)
+java -cp "$CP" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.cbljava.CBLJavaClient \
+  -P workloads/workloadc -p recordcount=2000 -p operationcount=1 \
+  -p cbl.dbPath=/tmp/cbl_demo -p cbl.preserveDb=true -threads 1 -t
+
+(Real upgrade testing pairs this with a rebuild against a different -Dcbl.version, per the test plan's Milestone 4.)
+
+Replicator (push to Sync Gateway, drain before exit) — not run here, needs a live SGW:
+java -cp "$CP" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.cbljava.CBLJavaClient \
+  -P workloads/workloada -p recordcount=2000 -p cbl.dbPath=/tmp/cbl_demo \
+  -p cbl.sgUri=ws://localhost:4984/db -p cbl.replicationType=push \
+  -p cbl.user=alice -p cbl.password=pass -p cbl.waitForSyncDrain=true \
+  -threads 4 -load
+
+Scan — idrange (default)
+java -cp "$CP" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.cbljava.CBLJavaClient \
+  -P workloads/cbljava_blank -p recordcount=2000 -p operationcount=500 \
+  -p scanproportion=1 -p cbl.dbPath=/tmp/cbl_demo -p cbl.queryMode=idrange -threads 4 -t
+
+Scan — fieldmatch (needs an index; create it during load)
+java -cp "$CP" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.cbljava.CBLJavaClient \
+  -P workloads/workloada -p recordcount=2000 -p cbl.dbPath=/tmp/cbl_idx \
+  -p cbl.createIndexes=true -threads 4 -load
+
+java -cp "$CP" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.cbljava.CBLJavaClient \
+  -P workloads/cbljava_blank -p recordcount=2000 -p operationcount=500 \
+  -p scanproportion=1 -p cbl.dbPath=/tmp/cbl_idx -p cbl.queryMode=fieldmatch \
+  -p cbl.queryField=field0 -threads 4 -t
+
+Scan — scoped to a non-default collection (exercises the CustomCollectionWorkload overloads):
+java -cp "$CP" com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.cbljava.CBLJavaClient \
+  -P workloads/cbljava_blank -p recordcount=2000 -p operationcount=500 -p scanproportion=1 \
+  -p cbl.dbPath=/tmp/cbl_coll -p collectionenabled=true \
+  -p scopesparam=scope1 -p collectionsparam=coll1 -threads 4 -load -t

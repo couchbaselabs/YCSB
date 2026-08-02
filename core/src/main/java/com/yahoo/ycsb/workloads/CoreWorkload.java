@@ -224,6 +224,16 @@ public class CoreWorkload extends Workload {
   public static final String SCAN_PROPORTION_PROPERTY_DEFAULT = "0.0";
 
   /**
+   * The name of the property for the proportion of transactions that are deletes.
+   */
+  public static final String DELETE_PROPORTION_PROPERTY = "deleteproportion";
+
+  /**
+   * The default proportion of transactions that are deletes.
+   */
+  public static final String DELETE_PROPORTION_PROPERTY_DEFAULT = "0.0";
+
+  /**
    * The name of the property for the proportion of transactions that are read-modify-write.
    */
   public static final String READMODIFYWRITE_PROPORTION_PROPERTY = "readmodifywriteproportion";
@@ -652,6 +662,9 @@ public class CoreWorkload extends Workload {
     case "SCAN":
       doTransactionScan(db);
       break;
+    case "DELETE":
+      doTransactionDelete(db);
+      break;
     default:
       doTransactionReadModifyWrite(db);
     }
@@ -827,6 +840,15 @@ public class CoreWorkload extends Workload {
     db.update(table, keyname, values);
   }
 
+  public void doTransactionDelete(DB db) {
+    // choose a random key
+    long keynum = nextKeynum();
+
+    String keyname = buildKeyName(keynum);
+
+    db.delete(table, keyname);
+  }
+
   public void doTransactionInsert(DB db) {
     // choose the next key
     long keynum = transactioninsertkeysequence.nextValue() + sgInserstart;
@@ -863,6 +885,8 @@ public class CoreWorkload extends Workload {
         p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
     final double scanproportion = Double.parseDouble(
         p.getProperty(SCAN_PROPORTION_PROPERTY, SCAN_PROPORTION_PROPERTY_DEFAULT));
+    final double deleteproportion = Double.parseDouble(
+        p.getProperty(DELETE_PROPORTION_PROPERTY, DELETE_PROPORTION_PROPERTY_DEFAULT));
     final double readmodifywriteproportion = Double.parseDouble(p.getProperty(
         READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
 
@@ -881,6 +905,10 @@ public class CoreWorkload extends Workload {
 
     if (scanproportion > 0) {
       operationchooser.addValue(scanproportion, "SCAN");
+    }
+
+    if (deleteproportion > 0) {
+      operationchooser.addValue(deleteproportion, "DELETE");
     }
 
     if (readmodifywriteproportion > 0) {

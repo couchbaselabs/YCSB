@@ -75,6 +75,9 @@ LICENSE file.
     <azuredocumentdb.version>1.8.1</azuredocumentdb.version>
     <azurestorage.version>4.0.0</azurestorage.version>
     <cassandra.cql.version>3.0.0</cassandra.cql.version>
+    <!-- Couchbase Lite is the component under test for the cbljava binding:
+         override at build time with -Dcbl.version=<build> -->
+    <cbl.version>4.1.0</cbl.version>
     <cloudspanner.version>0.24.0-beta</cloudspanner.version>
     <couchbase.version>1.4.10</couchbase.version>
     <couchbase2.version>2.7.0</couchbase2.version>
@@ -125,6 +128,7 @@ LICENSE file.
     <module>azuredocumentdb</module>
     <module>azuretablestorage</module>
     <module>cassandra</module>
+    <module>cbljava</module>
     <module>cloudspanner</module>
     <module>couchbase</module>
     <module>couchbase2</module>

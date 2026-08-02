@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright (c) 2015 YCSB contributors. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you
+may not use this file except in compliance with the License. You
+may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied. See the License for the specific language governing
+permissions and limitations under the License. See accompanying
+LICENSE file.
+-->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.yahoo.ycsb</groupId>
+    <artifactId>binding-parent</artifactId>
+    <version>0.15.0</version>
+    <relativePath>../binding-parent</relativePath>
+  </parent>
+
+  <artifactId>cbljava-binding</artifactId>
+  <name>Couchbase Lite Java Binding</name>
+  <packaging>jar</packaging>
+
+  <properties>
+    <!-- EE (default) comes from the Couchbase mobile repository (releases) and the internal
+         ProGet repository (intermediary builds, e.g. 4.1.0-42) declared below. Swap to CE
+         with -Dcbl.artifact=couchbase-lite-java (releases on Maven Central, intermediary
+         builds on ProGet). cbl.version is defined in the root pom and overridden at build
+         time with -Dcbl.version=<build> since CBL is the component under test. -->
+    <cbl.artifact>couchbase-lite-java-ee</cbl.artifact>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.couchbase.lite</groupId>
+      <artifactId>${cbl.artifact}</artifactId>
+      <version>${cbl.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>core</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.2.3</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- CBL Java 4.x requires Java 11; the rest of the fork builds 1.8. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <release>11</release>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <repositories>
+    <!-- Intermediary CBL builds (e.g. -Dcbl.version=4.1.0-42), CE and EE -->
+    <repository>
+      <id>couchbase-internal</id>
+      <name>Couchbase Internal Maven Repository</name>
+      <url>https://proget.sc.couchbase.com/maven2/internalmaven/</url>
+    </repository>
+    <!-- EE release builds -->
+    <repository>
+      <id>couchbase-mobile</id>
+      <name>Couchbase Mobile Maven Repository</name>
+      <url>https://mobile.maven.couchbase.com/maven2/dev/</url>
+    </repository>
+  </repositories>
+
+</project>

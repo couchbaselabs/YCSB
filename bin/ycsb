@@ -70,6 +70,7 @@ DATABASES = {
     "basicts"      : "com.yahoo.ycsb.BasicTSDB",
     "cassandra-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
     "cassandra2-cql": "com.yahoo.ycsb.db.CassandraCQLClient",
+    "cbljava"      : "com.yahoo.ycsb.db.cbljava.CBLJavaClient",
     "cloudspanner" : "com.yahoo.ycsb.db.cloudspanner.CloudSpannerClient",
     "couchbase"    : "com.yahoo.ycsb.db.CouchbaseClient",
     "couchbase2"   : "com.yahoo.ycsb.db.couchbase2.Couchbase2Client",
