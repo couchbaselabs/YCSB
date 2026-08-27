@@ -22,6 +22,7 @@ import com.couchbase.client.core.cnc.Event;
 import com.couchbase.client.core.cnc.events.request.RequestRetryScheduledEvent;
 import com.couchbase.client.core.deps.com.fasterxml.jackson.databind.JsonNode;
 import com.couchbase.client.core.deps.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import com.couchbase.client.core.env.CertificateAuthenticator;
 import com.couchbase.client.core.env.IoConfig;
 import com.couchbase.client.core.env.SeedNode;
 import com.couchbase.client.core.env.SecurityConfig;
@@ -225,7 +226,6 @@ public class Couchbase3Client extends DB {
               .securityConfig(SecurityConfig.enableTls(true)
                   .trustStore(keyStore))
               .build();
-          environment.eventBus().subscribe(System.out::println);
         } else {
           environment = ClusterEnvironment
               .builder()
@@ -246,17 +246,19 @@ public class Couchbase3Client extends DB {
               System.err.println("Regular retry occurred");
             }
           });
-        clusterOptions = ClusterOptions.clusterOptions(username, password);
-        if (!sslMode.equals("auth")) {
-          clusterOptions.environment(environment);
-          Set<SeedNode> seedNodes = new HashSet<>(Arrays.asList(
-              SeedNode.create(hostname,
-                  Optional.of(kvPort),
-                  Optional.of(managerPort))));
-          cluster = Cluster.connect(seedNodes, clusterOptions);
+        if (sslMode.equals("auth")) {
+          // x.509 client auth
+          clusterOptions = ClusterOptions.clusterOptions(
+              CertificateAuthenticator.fromKeyStore(keyStore, certKeystorePassword));
         } else {
-          cluster = Cluster.connect(hostname, clusterOptions);
+          clusterOptions = ClusterOptions.clusterOptions(username, password);
         }
+        clusterOptions.environment(environment);
+        Set<SeedNode> seedNodes = new HashSet<>(Arrays.asList(
+            SeedNode.create(hostname,
+                Optional.of(kvPort),
+                Optional.of(managerPort))));
+        cluster = Cluster.connect(seedNodes, clusterOptions);
         reactiveCluster = cluster.reactive();
         bucket = cluster.bucket(bucketName);
         bucket.waitUntilReady(Duration.ofSeconds(20));
